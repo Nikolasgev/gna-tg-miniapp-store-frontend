@@ -1,0 +1,7 @@
+{
+  "buildCommand": "echo 'Build is done by GitHub Actions'",
+  "outputDirectory": "build/web",
+  "installCommand": "echo 'No install needed'",
+  "framework": null
+}
+
