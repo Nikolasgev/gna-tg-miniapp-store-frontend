@@ -38,7 +38,9 @@ abstract class CatalogState extends Equatable {
 class CatalogInitial extends CatalogState {}
 
 class CatalogLoading extends CatalogState {
+  @override
   final List<Category>? categories;
+  @override
   final List<Product>? products;
 
   const CatalogLoading({this.categories, this.products});
@@ -48,7 +50,9 @@ class CatalogLoading extends CatalogState {
 }
 
 class CatalogCategoriesLoaded extends CatalogState {
+  @override
   final List<Category> categories;
+  @override
   final List<Product>? products;
   final String searchQuery;
   final String? selectedCategoryId;
@@ -69,7 +73,9 @@ class CatalogCategoriesLoaded extends CatalogState {
 }
 
 class CatalogProductsLoaded extends CatalogState {
+  @override
   final List<Product> products;
+  @override
   final List<Category>? categories;
   final String searchQuery;
   final String? selectedCategoryId;
@@ -90,7 +96,9 @@ class CatalogProductsLoaded extends CatalogState {
 }
 
 class CatalogLoaded extends CatalogState {
+  @override
   final List<Category> categories;
+  @override
   final List<Product> products;
   final String searchQuery;
   final String? selectedCategoryId;

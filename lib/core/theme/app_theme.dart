@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tg_store/core/theme/business_theme.dart';
 
 class AppTheme {
   // ========== СВЕТЛАЯ ТЕМА ==========
@@ -65,8 +66,8 @@ class AppTheme {
       brightness: Brightness.light,
       primary: _lightPrimaryColor,
       onPrimary: Colors.white,
-      primaryContainer: _lightPrimaryVariant,
-      onPrimaryContainer: _lightPrimaryText,
+      primaryContainer: _lightSecondaryColor, // Светлый контейнер для лучшей читаемости
+      onPrimaryContainer: _lightPrimaryColor, // Темный текст на светлом фоне
       secondary: _lightSecondaryColor,
       onSecondary: _lightPrimaryText,
       secondaryContainer: _lightSecondaryVariant,
@@ -75,6 +76,8 @@ class AppTheme {
       onTertiary: Colors.white,
       error: _lightError,
       onError: Colors.white,
+      errorContainer: _lightError.withOpacity(0.1), // Светлый контейнер ошибки
+      onErrorContainer: _lightError, // Темный текст ошибки на светлом фоне
       surface: _lightSurface,
       onSurface: _lightPrimaryText,
       onSurfaceVariant: _lightSecondaryText,
@@ -192,9 +195,9 @@ class AppTheme {
             letterSpacing: 0.5,
           ),
         ).copyWith(
-          elevation: MaterialStateProperty.resolveWith<double>(
-            (Set<MaterialState> states) {
-              if (states.contains(MaterialState.pressed)) {
+          elevation: WidgetStateProperty.resolveWith<double>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.pressed)) {
                 return 0;
               }
               return 0;
@@ -439,6 +442,8 @@ class AppTheme {
       onTertiary: _darkBackground,
       error: _darkError,
       onError: _darkPrimaryText,
+      errorContainer: _darkError.withOpacity(0.2), // Темный контейнер ошибки
+      onErrorContainer: _darkError, // Светлый текст ошибки на темном фоне
       surface: _darkSurface,
       onSurface: _darkPrimaryText,
       onSurfaceVariant: _darkSecondaryText,
@@ -556,9 +561,9 @@ class AppTheme {
             letterSpacing: 0.5,
           ),
         ).copyWith(
-          elevation: MaterialStateProperty.resolveWith<double>(
-            (Set<MaterialState> states) {
-              if (states.contains(MaterialState.pressed)) {
+          elevation: WidgetStateProperty.resolveWith<double>(
+            (Set<WidgetState> states) {
+              if (states.contains(WidgetState.pressed)) {
                 return 0;
               }
               return 0;
@@ -806,4 +811,160 @@ class AppTheme {
   static Color get warning => _darkWarning;
   static Color get error => _darkError;
   static Color get disabled => _darkDisabled;
+
+  /// Создать светлую тему с кастомными цветами бизнеса
+  static ThemeData createLightTheme(BusinessTheme businessTheme) {
+    // Используем цвета бизнеса, если они заданы, иначе дефолтные
+    final primaryColor = businessTheme.primaryColor ?? _lightPrimaryColor;
+    final backgroundColor = businessTheme.backgroundColor ?? _lightBackground;
+    final textColor = businessTheme.textColor ?? _lightPrimaryText;
+    final secondaryColor = businessTheme.secondaryColor ?? _lightSecondaryColor;
+    final tertiaryColor = businessTheme.tertiaryColor ?? _lightAccentColor;
+    final errorColor = businessTheme.errorColor ?? _lightError;
+    final surfaceColor = businessTheme.surfaceColor ?? _lightSurface;
+    final onPrimaryColor = businessTheme.onPrimaryColor ?? Colors.white;
+    final onSecondaryColor = businessTheme.onSecondaryColor ?? textColor;
+    final onTertiaryColor = businessTheme.onTertiaryColor ?? Colors.white;
+    final onErrorColor = businessTheme.onErrorColor ?? Colors.white;
+    final onSurfaceColor = businessTheme.onSurfaceColor ?? textColor;
+    final primaryContainerColor = businessTheme.primaryContainerColor ?? _lightSecondaryColor;
+    final secondaryContainerColor = businessTheme.secondaryContainerColor ?? _lightSecondaryVariant;
+    final tertiaryContainerColor = businessTheme.tertiaryContainerColor ?? _lightSecondaryVariant;
+    final errorContainerColor = businessTheme.errorContainerColor ?? _lightError.withOpacity(0.1);
+    final onPrimaryContainerColor = businessTheme.onPrimaryContainerColor ?? primaryColor;
+    final onSecondaryContainerColor = businessTheme.onSecondaryContainerColor ?? textColor;
+    final onTertiaryContainerColor = businessTheme.onTertiaryContainerColor ?? textColor;
+    final onErrorContainerColor = businessTheme.onErrorContainerColor ?? _lightError;
+    final outlineColor = businessTheme.outlineColor ?? _lightMutedText;
+    final outlineVariantColor = businessTheme.outlineVariantColor ?? _lightDisabled;
+    
+    final colorScheme = ColorScheme(
+      brightness: Brightness.light,
+      primary: primaryColor,
+      onPrimary: onPrimaryColor,
+      primaryContainer: primaryContainerColor,
+      onPrimaryContainer: onPrimaryContainerColor,
+      secondary: secondaryColor,
+      onSecondary: onSecondaryColor,
+      secondaryContainer: secondaryContainerColor,
+      onSecondaryContainer: onSecondaryContainerColor,
+      tertiary: tertiaryColor,
+      onTertiary: onTertiaryColor,
+      error: errorColor,
+      onError: onErrorColor,
+      errorContainer: errorContainerColor,
+      onErrorContainer: onErrorContainerColor,
+      surface: surfaceColor,
+      onSurface: onSurfaceColor,
+      onSurfaceVariant: _lightSecondaryText,
+      surfaceContainerHighest: _lightCardBackground,
+      surfaceContainerHigh: _lightCardBackground,
+      outline: outlineColor,
+      outlineVariant: outlineVariantColor,
+      shadow: Colors.black.withOpacity(0.1),
+      scrim: Colors.black.withOpacity(0.3),
+      inverseSurface: textColor,
+      onInverseSurface: backgroundColor,
+      inversePrimary: primaryColor.withOpacity(0.2),
+      surfaceTint: primaryColor,
+    );
+
+    return lightTheme.copyWith(
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: backgroundColor,
+      appBarTheme: lightTheme.appBarTheme.copyWith(
+        backgroundColor: backgroundColor,
+        foregroundColor: textColor,
+      ),
+    );
+  }
+
+  /// Создать темную тему с кастомными цветами бизнеса
+  static ThemeData createDarkTheme(BusinessTheme businessTheme) {
+    // Используем цвета бизнеса, если они заданы, иначе дефолтные
+    final primaryColor = businessTheme.primaryColor ?? _darkPrimaryColor;
+    final backgroundColor = businessTheme.backgroundColor ?? _darkBackground;
+    final textColor = businessTheme.textColor ?? _darkPrimaryText;
+    final secondaryColor = businessTheme.secondaryColor ?? _darkSecondaryColor;
+    final tertiaryColor = businessTheme.tertiaryColor ?? _darkAccentColor;
+    final errorColor = businessTheme.errorColor ?? _darkError;
+    final surfaceColor = businessTheme.surfaceColor ?? _darkSurface;
+    final onPrimaryColor = businessTheme.onPrimaryColor ?? backgroundColor;
+    final onSecondaryColor = businessTheme.onSecondaryColor ?? backgroundColor;
+    final onTertiaryColor = businessTheme.onTertiaryColor ?? backgroundColor;
+    final onErrorColor = businessTheme.onErrorColor ?? Colors.white;
+    final onSurfaceColor = businessTheme.onSurfaceColor ?? textColor;
+    final primaryContainerColor = businessTheme.primaryContainerColor ?? _darkPrimaryContainer;
+    final secondaryContainerColor = businessTheme.secondaryContainerColor ?? _darkSecondaryContainer;
+    final tertiaryContainerColor = businessTheme.tertiaryContainerColor ?? _darkSecondaryContainer;
+    final errorContainerColor = businessTheme.errorContainerColor ?? _darkError.withOpacity(0.2);
+    final onPrimaryContainerColor = businessTheme.onPrimaryContainerColor ?? textColor;
+    final onSecondaryContainerColor = businessTheme.onSecondaryContainerColor ?? textColor;
+    final onTertiaryContainerColor = businessTheme.onTertiaryContainerColor ?? textColor;
+    final onErrorContainerColor = businessTheme.onErrorContainerColor ?? _darkError;
+    final outlineColor = businessTheme.outlineColor ?? _darkMutedText;
+    final outlineVariantColor = businessTheme.outlineVariantColor ?? _darkDisabled;
+    
+    final colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: primaryColor,
+      onPrimary: onPrimaryColor,
+      primaryContainer: primaryContainerColor,
+      onPrimaryContainer: onPrimaryContainerColor,
+      secondary: secondaryColor,
+      onSecondary: onSecondaryColor,
+      secondaryContainer: secondaryContainerColor,
+      onSecondaryContainer: onSecondaryContainerColor,
+      tertiary: tertiaryColor,
+      onTertiary: onTertiaryColor,
+      error: errorColor,
+      onError: onErrorColor,
+      errorContainer: errorContainerColor,
+      onErrorContainer: onErrorContainerColor,
+      surface: surfaceColor,
+      onSurface: onSurfaceColor,
+      onSurfaceVariant: _darkSecondaryText,
+      surfaceContainerHighest: _darkCardBackground,
+      surfaceContainerHigh: _darkCardBackground,
+      outline: outlineColor,
+      outlineVariant: outlineVariantColor,
+      shadow: Colors.black.withOpacity(0.3),
+      scrim: Colors.black.withOpacity(0.5),
+      inverseSurface: textColor,
+      onInverseSurface: backgroundColor,
+      inversePrimary: primaryColor.withOpacity(0.2),
+      surfaceTint: primaryColor,
+    );
+
+    return darkTheme.copyWith(
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: backgroundColor,
+      appBarTheme: darkTheme.appBarTheme.copyWith(
+        backgroundColor: backgroundColor,
+        foregroundColor: textColor,
+      ),
+    );
+  }
+
+  /// Осветлить цвет
+  static Color _lightenColor(Color color, double amount) {
+    assert(amount >= 0 && amount <= 1);
+    return Color.fromARGB(
+      color.alpha,
+      ((color.red + (255 - color.red) * amount).round()).clamp(0, 255),
+      ((color.green + (255 - color.green) * amount).round()).clamp(0, 255),
+      ((color.blue + (255 - color.blue) * amount).round()).clamp(0, 255),
+    );
+  }
+
+  /// Затемнить цвет
+  static Color _darkenColor(Color color, double amount) {
+    assert(amount >= 0 && amount <= 1);
+    return Color.fromARGB(
+      color.alpha,
+      (color.red * (1 - amount)).round().clamp(0, 255),
+      (color.green * (1 - amount)).round().clamp(0, 255),
+      (color.blue * (1 - amount)).round().clamp(0, 255),
+    );
+  }
 }

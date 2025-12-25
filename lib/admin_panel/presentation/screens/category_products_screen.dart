@@ -153,7 +153,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Удалить'),
           ),
         ],
@@ -184,9 +186,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
             await _loadProducts();
             logger.d('✅ List reloaded after delete');
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Товар успешно удален'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Товар успешно удален'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
           }
@@ -194,12 +196,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           throw Exception('Неожиданный статус ответа: ${response.statusCode}');
         }
       } catch (e) {
-        logger.d('❌ Error deleting product: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ошибка удаления: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              content: const Text('Не удалось удалить товар. Попробуйте еще раз.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
               duration: const Duration(seconds: 5),
             ),
           );
@@ -224,7 +225,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Удалить'),
           ),
         ],
@@ -260,9 +263,9 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
         if (response.statusCode == 200) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Товар удален из категории'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Товар удален из категории'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
             await _loadProducts();
@@ -271,12 +274,11 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
           throw Exception('Неожиданный статус ответа: ${response.statusCode}');
         }
       } catch (e) {
-        logger.d('❌ Error removing product from category: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ошибка удаления: ${e.toString()}'),
-              backgroundColor: Colors.red,
+              content: const Text('Не удалось удалить товар. Попробуйте еще раз.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           setState(() {
@@ -402,10 +404,10 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.inventory_2_outlined,
                             size: 64,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -442,8 +444,8 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                                         ? Icons.check_circle
                                         : Icons.cancel,
                                     color: product['is_active'] == true
-                                        ? Colors.green
-                                        : Colors.grey,
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
@@ -452,12 +454,18 @@ class _CategoryProductsScreenState extends State<CategoryProductsScreen> {
                                     tooltip: 'Редактировать',
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline, color: Colors.orange),
+                                    icon: Icon(
+                                      Icons.remove_circle_outline, 
+                                      color: Theme.of(context).colorScheme.tertiary,
+                                    ),
                                     onPressed: () => _removeProductFromCategory(product),
                                     tooltip: 'Удалить из категории',
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    icon: Icon(
+                                      Icons.delete, 
+                                      color: Theme.of(context).colorScheme.error,
+                                    ),
                                     onPressed: () => _deleteProduct(product),
                                     tooltip: 'Удалить товар',
                                   ),

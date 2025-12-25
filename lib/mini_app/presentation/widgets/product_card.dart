@@ -8,10 +8,12 @@ import 'package:tg_store/mini_app/presentation/widgets/animated_cart_button.dart
 
 class ProductCard extends StatefulWidget {
   final Product product;
+  final EdgeInsets? margin;
 
   const ProductCard({
     super.key,
     required this.product,
+    this.margin,
   });
 
   @override
@@ -62,7 +64,7 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: widget.margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               elevation: _elevationAnimation.value,
               color: colorScheme.surfaceContainerHighest, // Фон карточки из темы
               shape: RoundedRectangleBorder(
@@ -72,6 +74,7 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                   width: 1,
                 ),
               ),
+              clipBehavior: Clip.antiAlias,
               child: InkWell(
                 onTap: () {
                   AppRouter.toProduct(widget.product.id);
@@ -79,6 +82,7 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                 borderRadius: BorderRadius.circular(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Product image with modern design
                     ClipRRect(
@@ -99,6 +103,9 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                                     headers: const {
                                       'Accept': 'image/*',
                                     },
+                                    // Оптимизация: ограничение размера кеша для экономии памяти
+                                    cacheWidth: 400,
+                                    cacheHeight: 400,
                                     loadingBuilder: (context, child, loadingProgress) {
                                   if (loadingProgress == null) return child;
                                   return Container(
@@ -166,9 +173,10 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                     ),
                     // Content section
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           // Product title
                           Text(
@@ -195,45 +203,160 @@ class _ProductCardState extends State<ProductCard> with SingleTickerProviderStat
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8),
+                          // Stock status badge
+                          if (widget.product.stockQuantity != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: widget.product.isInStock
+                                          ? colorScheme.primaryContainer
+                                          : colorScheme.errorContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          widget.product.isInStock
+                                              ? Icons.check_circle_outline
+                                              : Icons.cancel_outlined,
+                                          size: 14,
+                                          color: widget.product.isInStock
+                                              ? colorScheme.onPrimaryContainer
+                                              : colorScheme.onErrorContainer,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.product.isInStock
+                                              ? 'В наличии (${widget.product.stockQuantity} шт.)'
+                                              : 'Нет в наличии',
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: widget.product.isInStock
+                                                ? colorScheme.onPrimaryContainer
+                                                : colorScheme.onErrorContainer,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
                           // Price and add button row
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               // Price badge
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '${widget.product.price.toStringAsFixed(0)}',
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: colorScheme.onPrimary,
-                                        fontSize: 20,
+                              widget.product.hasActiveDiscount
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // Новая цена со скидкой
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.tertiary,
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                widget.product.currentPrice.toStringAsFixed(0),
+                                                style: theme.textTheme.titleLarge?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorScheme.onTertiary,
+                                                  fontSize: 20,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '₽',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.onTertiary,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Старая цена (зачеркнутая) справа в красивом контейнере
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.surfaceContainerHighest,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: colorScheme.outline.withOpacity(0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${widget.product.price.toStringAsFixed(0)} ₽',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              decoration: TextDecoration.lineThrough,
+                                              decorationThickness: 2,
+                                              color: colorScheme.onSurface.withOpacity(0.6),
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            widget.product.currentPrice.toStringAsFixed(0),
+                                            style: theme.textTheme.titleLarge?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: colorScheme.onPrimary,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '₽',
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: colorScheme.onPrimary,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '₽',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: colorScheme.onPrimary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                               // Add to cart button
                               AnimatedCartButton(product: widget.product),
                             ],

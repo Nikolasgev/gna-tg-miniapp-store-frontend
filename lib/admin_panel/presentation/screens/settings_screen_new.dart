@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -101,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text((bloc.state as LogoUploadError).message),
-              backgroundColor: Colors.red,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           return;
@@ -172,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${htmlFile.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -184,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -210,7 +209,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${file.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -222,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -242,16 +241,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } else if (state is SettingsUpdated) {
             _populateControllers(state.settings);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Настройки сохранены'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Настройки сохранены'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
           } else if (state is SettingsError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -495,11 +494,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
+                                      color: Theme.of(context).colorScheme.onPrimary,
                                       strokeWidth: 2,
                                     ),
                                   )

@@ -10,7 +10,10 @@ abstract class OrderRepository {
     String? customerAddress,
     required List<Map<String, dynamic>> items,
     required String paymentMethod,
+    required String deliveryMethod,
     int? userTelegramId,
+    String? promocodeCode,
+    double? loyaltyPointsToSpend,
   });
   
   Future<Either<Failure, entities.Order>> getOrder(String orderId);

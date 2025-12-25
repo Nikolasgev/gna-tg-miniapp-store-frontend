@@ -13,6 +13,7 @@ import 'package:tg_store/mini_app/presentation/widgets/filters_dialog.dart';
 import 'package:tg_store/mini_app/presentation/screens/orders_history_screen.dart';
 import 'package:tg_store/mini_app/presentation/screens/settings_screen.dart';
 import 'package:tg_store/mini_app/presentation/screens/support_screen.dart';
+import 'package:tg_store/mini_app/presentation/screens/loyalty_screen.dart';
 import 'package:tg_store/l10n/app_localizations.dart';
 
 class CatalogScreen extends StatefulWidget {
@@ -34,7 +35,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
   @override
   void initState() {
     super.initState();
-    logger.i('CatalogScreen initState called');
     
     // Загружаем business slug и затем продукты
     _loadBusinessSlugAndProducts();
@@ -43,25 +43,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Future<void> _loadBusinessSlugAndProducts() async {
     // Получаем business slug
     _businessSlug = await BusinessService.getBusinessSlug() ?? 'default-business';
-    logger.i('Business slug loaded: $_businessSlug');
     
     // Загружаем настройки бизнеса
     await _loadBusinessSettings();
     
     // Load products after first frame (categories will be loaded automatically)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      logger.i('PostFrameCallback: Loading products');
       try {
         // Загружаем только продукты, категории загрузятся автоматически в BLoC
         // Применяем текущие фильтры по цене, если они установлены
-        logger.i('Loading products with filters: minPrice=$_minPrice, maxPrice=$_maxPrice');
         context.read<CatalogBloc>().add(LoadProducts(_businessSlug!, minPrice: _minPrice, maxPrice: _maxPrice));
-        logger.i('LoadProducts event dispatched');
-      } catch (e, stackTrace) {
-        logger.e('Error dispatching catalog events', 
-          error: e,
-          stackTrace: stackTrace,
-        );
+      } catch (e) {
+        // Логируем только критичные ошибки
       }
     });
   }
@@ -81,15 +74,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
           _businessName = data['name'] as String?;
           _businessLogo = logoUrl;
         });
-        logger.i('Business settings loaded: name=$_businessName');
-        logger.i('Business logo URL: $logoUrl');
-        logger.i('Business logo isNotEmpty: ${logoUrl != null && logoUrl.isNotEmpty}');
       }
-    } catch (e, stackTrace) {
-      logger.e('Error loading business settings', 
-        error: e,
-        stackTrace: stackTrace,
-      );
+    } catch (e) {
       // Не критично, продолжаем работу с дефолтным названием
     }
   }
@@ -127,10 +113,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
       final newMaxPrice = result['maxPrice'] as double?;
       final newPriceSort = result['priceSort'] as String?;
       
-      logger.d('🔍 CatalogScreen: Received filters from dialog');
-      logger.d('   minPrice: $newMinPrice (type: ${newMinPrice.runtimeType})');
-      logger.d('   maxPrice: $newMaxPrice (type: ${newMaxPrice.runtimeType})');
-      logger.d('   priceSort: $newPriceSort');
       
       setState(() {
         _minPrice = newMinPrice;
@@ -140,10 +122,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
       // Применяем фильтры и сортировку
       if (_businessSlug != null) {
-        logger.d('🔍 CatalogScreen: Dispatching LoadProducts with filters');
-        logger.d('   businessSlug: $_businessSlug');
-        logger.d('   minPrice: $_minPrice');
-        logger.d('   maxPrice: $_maxPrice');
         
         // Сначала загружаем продукты с фильтрами по цене
         context.read<CatalogBloc>().add(
@@ -226,6 +204,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ),
             );
             break;
+          case 'loyalty':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const LoyaltyScreen(),
+              ),
+            );
+            break;
         }
       },
       itemBuilder: (BuildContext context) {
@@ -250,7 +236,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           _buildMenuItem(
             context,
             icon: Icons.help_outline_rounded,
-            iconColor: colorScheme.secondary,
+            iconColor: colorScheme.onSecondaryContainer,
             title: l10n.support,
             subtitle: l10n.supportSubtitle,
             value: 'support',
@@ -352,6 +338,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         width: 40,
                         height: 40,
                         fit: BoxFit.contain,
+                        // Оптимизация: ограничение размера кеша
+                        cacheWidth: 200,
+                        cacheHeight: 200,
                         errorBuilder: (context, error, stackTrace) {
                           logger.e('Error loading business logo', 
                             error: error,
@@ -538,9 +527,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 }
 
                 if (state is CatalogError) {
-                  logger.e('Products loading error: ${state.message}');
-                  final isConnectionError = state.message.contains('подключиться') || 
-                                           state.message.contains('connection');
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
@@ -555,20 +541,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            state.message,
+                            'Не удалось загрузить каталог. Проверьте подключение к интернету.',
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
-                          if (isConnectionError) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              AppLocalizations.of(context)!.ensureBackendRunning,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                              ),
-                            ),
-                          ],
                           const SizedBox(height: 24),
                           ElevatedButton(
                             onPressed: () {
@@ -591,7 +567,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   logger.d('✅✅✅ CATALOG SCREEN: CatalogLoaded with ${products.length} products');
                   
                   if (products.isNotEmpty) {
-                    logger.d('✅✅✅ CATALOG SCREEN: Building ListView with ${products.length} products');
+                    logger.d('✅✅✅ CATALOG SCREEN: Building responsive layout with ${products.length} products');
                     return RefreshIndicator(
                       onRefresh: () async {
                         if (_businessSlug != null) {
@@ -599,14 +575,69 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         }
                         await Future.delayed(const Duration(milliseconds: 500));
                       },
-                      child: ListView.builder(
-                        padding: const EdgeInsets.only(bottom: 56),
-                        itemCount: products.length,
-                        itemBuilder: (context, index) {
-                          final product = products[index];
-                          return ProductCard(
-                            product: product,
-                          );
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Определяем количество колонок в зависимости от ширины экрана
+                          final isVeryWideScreen = constraints.maxWidth > 1200; // Очень широкий экран - 3 колонки
+                          final isWideScreen = constraints.maxWidth > 600; // Широкий экран - 2 колонки
+                          
+                          if (isVeryWideScreen) {
+                            // GridView для очень широких экранов (3 колонки)
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                mainAxisExtent: 420, // Фиксированная высота карточки
+                              ),
+                              itemCount: products.length,
+                              itemBuilder: (context, index) {
+                                final product = products[index];
+                                return SizedBox(
+                                  height: 420,
+                                  child: ProductCard(
+                                    product: product,
+                                    margin: EdgeInsets.zero, // Убираем отступы для GridView
+                                  ),
+                                );
+                              },
+                            );
+                          } else if (isWideScreen) {
+                            // GridView для широких экранов (2 колонки)
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                mainAxisExtent: 420, // Фиксированная высота карточки
+                              ),
+                              itemCount: products.length,
+                              itemBuilder: (context, index) {
+                                final product = products[index];
+                                return SizedBox(
+                                  height: 420,
+                                  child: ProductCard(
+                                    product: product,
+                                    margin: EdgeInsets.zero, // Убираем отступы для GridView
+                                  ),
+                                );
+                              },
+                            );
+                          } else {
+                            // ListView для узких экранов (1 колонка)
+                            return ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 56),
+                              itemCount: products.length,
+                              itemBuilder: (context, index) {
+                                final product = products[index];
+                                return ProductCard(
+                                  product: product,
+                                );
+                              },
+                            );
+                          }
                         },
                       ),
                     );
@@ -629,14 +660,69 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       }
                       await Future.delayed(const Duration(milliseconds: 500));
                     },
-                    child: ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      itemCount: productsList.length,
-                      itemBuilder: (context, index) {
-                        final product = productsList[index];
-                        return ProductCard(
-                          product: product,
-                        );
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Определяем количество колонок в зависимости от ширины экрана
+                        final isVeryWideScreen = constraints.maxWidth > 1200; // Очень широкий экран - 3 колонки
+                        final isWideScreen = constraints.maxWidth > 600; // Широкий экран - 2 колонки
+                        
+                        if (isVeryWideScreen) {
+                          // GridView для очень широких экранов (3 колонки)
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              mainAxisExtent: 420, // Фиксированная высота карточки
+                            ),
+                            itemCount: productsList.length,
+                            itemBuilder: (context, index) {
+                              final product = productsList[index];
+                              return SizedBox(
+                                height: 420,
+                                child: ProductCard(
+                                  product: product,
+                                  margin: EdgeInsets.zero, // Убираем отступы для GridView
+                                ),
+                              );
+                            },
+                          );
+                        } else if (isWideScreen) {
+                          // GridView для широких экранов (2 колонки)
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              mainAxisExtent: 420, // Фиксированная высота карточки
+                            ),
+                            itemCount: productsList.length,
+                            itemBuilder: (context, index) {
+                              final product = productsList[index];
+                              return SizedBox(
+                                height: 420,
+                                child: ProductCard(
+                                  product: product,
+                                  margin: EdgeInsets.zero, // Убираем отступы для GridView
+                                ),
+                              );
+                            },
+                          );
+                        } else {
+                          // ListView для узких экранов (1 колонка)
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            itemCount: productsList.length,
+                            itemBuilder: (context, index) {
+                              final product = productsList[index];
+                              return ProductCard(
+                                product: product,
+                              );
+                            },
+                          );
+                        }
                       },
                     ),
                   );

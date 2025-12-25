@@ -23,6 +23,9 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     on<UpdateDeliveryMethod>(_onUpdateDeliveryMethod);
     on<UpdatePaymentMethod>(_onUpdatePaymentMethod);
     on<CalculateDeliveryCost>(_onCalculateDeliveryCost);
+    on<ValidatePromocode>(_onValidatePromocode);
+    on<ClearPromocode>(_onClearPromocode);
+    on<UpdateLoyaltyPointsToSpend>(_onUpdateLoyaltyPointsToSpend);
   }
 
   Future<void> _onSubmitOrder(
@@ -50,7 +53,10 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         customerAddress: event.customerAddress,
         items: event.items,
         paymentMethod: event.paymentMethod,
+        deliveryMethod: event.deliveryMethod,
         userTelegramId: event.userTelegramId,
+        promocodeCode: event.promocodeCode,
+        loyaltyPointsToSpend: event.loyaltyPointsToSpend,
       );
       
       result.fold(
@@ -100,6 +106,342 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
     emit(const CheckoutInitial());
   }
 
+  Future<void> _onValidatePromocode(
+    ValidatePromocode event,
+    Emitter<CheckoutState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! CheckoutInitial) return;
+
+    // Устанавливаем флаг валидации
+    emit(CheckoutInitial(
+      customerName: currentState.customerName,
+      customerPhone: currentState.customerPhone,
+      customerAddress: currentState.customerAddress,
+      deliveryMethod: currentState.deliveryMethod,
+      paymentMethod: currentState.paymentMethod,
+      deliveryCost: currentState.deliveryCost,
+      isCalculatingDelivery: currentState.isCalculatingDelivery,
+      promocode: currentState.promocode,
+      promocodeDiscount: currentState.promocodeDiscount,
+      isValidatingPromocode: true,
+      promocodeError: null,
+      loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+      loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+    ));
+
+    try {
+      // Сначала получаем business_id через business_slug
+      String businessId;
+      try {
+        final businessResponse = await _apiClient.dio.get(
+          ApiConstants.businessBySlug(event.businessSlug),
+        );
+
+        if (businessResponse.statusCode != 200) {
+          final errorMsg = _extractErrorMessage(businessResponse.data) ?? 
+              'Не удалось загрузить данные бизнеса';
+          emit(CheckoutInitial(
+            customerName: currentState.customerName,
+            customerPhone: currentState.customerPhone,
+            customerAddress: currentState.customerAddress,
+            deliveryMethod: currentState.deliveryMethod,
+            paymentMethod: currentState.paymentMethod,
+            deliveryCost: currentState.deliveryCost,
+            isCalculatingDelivery: currentState.isCalculatingDelivery,
+            promocode: null,
+            promocodeDiscount: null,
+            isValidatingPromocode: false,
+            promocodeError: errorMsg,
+            loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+            loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+          ));
+          return;
+        }
+
+        final businessData = businessResponse.data;
+        if (businessData is! Map || businessData['id'] == null) {
+          emit(CheckoutInitial(
+            customerName: currentState.customerName,
+            customerPhone: currentState.customerPhone,
+            customerAddress: currentState.customerAddress,
+            deliveryMethod: currentState.deliveryMethod,
+            paymentMethod: currentState.paymentMethod,
+            deliveryCost: currentState.deliveryCost,
+            isCalculatingDelivery: currentState.isCalculatingDelivery,
+            promocode: null,
+            promocodeDiscount: null,
+            isValidatingPromocode: false,
+            promocodeError: 'Неверный формат ответа от сервера',
+            loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+            loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+          ));
+          return;
+        }
+
+        businessId = businessData['id'] as String;
+      } on DioException catch (e) {
+        final errorMsg = _extractErrorMessageFromDioException(e) ?? 
+            'Ошибка подключения к серверу';
+        emit(CheckoutInitial(
+          customerName: currentState.customerName,
+          customerPhone: currentState.customerPhone,
+          customerAddress: currentState.customerAddress,
+          deliveryMethod: currentState.deliveryMethod,
+          paymentMethod: currentState.paymentMethod,
+          deliveryCost: currentState.deliveryCost,
+          isCalculatingDelivery: currentState.isCalculatingDelivery,
+          promocode: null,
+          promocodeDiscount: null,
+          isValidatingPromocode: false,
+          promocodeError: errorMsg,
+          loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+          loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+        ));
+        return;
+      }
+
+      // Валидируем промокод
+      try {
+        logger.d('🔍 Validating promocode: ${event.promocode}, user_telegram_id: ${event.userTelegramId}, order_amount: ${event.orderAmount}');
+        final response = await _apiClient.dio.post(
+          ApiConstants.validatePromocode(businessId),
+          data: {
+            'code': event.promocode,
+            'order_amount': event.orderAmount,
+            'user_telegram_id': event.userTelegramId,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = response.data;
+          if (data is! Map) {
+            emit(CheckoutInitial(
+              customerName: currentState.customerName,
+              customerPhone: currentState.customerPhone,
+              customerAddress: currentState.customerAddress,
+              deliveryMethod: currentState.deliveryMethod,
+              paymentMethod: currentState.paymentMethod,
+              deliveryCost: currentState.deliveryCost,
+              isCalculatingDelivery: currentState.isCalculatingDelivery,
+              promocode: null,
+              promocodeDiscount: null,
+              isValidatingPromocode: false,
+              promocodeError: 'Неверный формат ответа от сервера',
+              loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+              loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+            ));
+            return;
+          }
+
+          final isValid = data['valid'] as bool? ?? false;
+          final discountAmount = data['discount_amount'];
+          final error = data['error'] as String?;
+
+          logger.d('📋 Promocode validation response: valid=$isValid, discount=$discountAmount, error=$error');
+
+          // Проверяем, что промокод валиден и есть размер скидки
+          if (isValid == true && discountAmount != null) {
+            final discount = discountAmount is num 
+                ? discountAmount.toDouble() 
+                : (double.tryParse(discountAmount.toString()) ?? 0.0);
+            
+            logger.i('✅ Promocode validated: ${event.promocode}, discount: $discount');
+            emit(CheckoutInitial(
+              customerName: currentState.customerName,
+              customerPhone: currentState.customerPhone,
+              customerAddress: currentState.customerAddress,
+              deliveryMethod: currentState.deliveryMethod,
+              paymentMethod: currentState.paymentMethod,
+              deliveryCost: currentState.deliveryCost,
+              isCalculatingDelivery: currentState.isCalculatingDelivery,
+              promocode: event.promocode,
+              promocodeDiscount: discount,
+              isValidatingPromocode: false,
+              promocodeError: null,
+              loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+              loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+            ));
+          } else {
+            // Промокод недействителен или есть ошибка
+            final errorMessage = error ?? 'Промокод недействителен';
+            logger.w('⚠️ Promocode invalid or error: $errorMessage (valid=$isValid, discount=$discountAmount)');
+            
+            // Всегда показываем ошибку, даже если valid=false без явной ошибки
+            emit(CheckoutInitial(
+              customerName: currentState.customerName,
+              customerPhone: currentState.customerPhone,
+              customerAddress: currentState.customerAddress,
+              deliveryMethod: currentState.deliveryMethod,
+              paymentMethod: currentState.paymentMethod,
+              deliveryCost: currentState.deliveryCost,
+              isCalculatingDelivery: currentState.isCalculatingDelivery,
+              promocode: null,
+              promocodeDiscount: null,
+              isValidatingPromocode: false,
+              promocodeError: errorMessage,
+              loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+              loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+            ));
+          }
+        } else {
+          final errorMsg = _extractErrorMessage(response.data) ?? 
+              'Ошибка при проверке промокода';
+          emit(CheckoutInitial(
+            customerName: currentState.customerName,
+            customerPhone: currentState.customerPhone,
+            customerAddress: currentState.customerAddress,
+            deliveryMethod: currentState.deliveryMethod,
+            paymentMethod: currentState.paymentMethod,
+            deliveryCost: currentState.deliveryCost,
+            isCalculatingDelivery: currentState.isCalculatingDelivery,
+            promocode: null,
+            promocodeDiscount: null,
+            isValidatingPromocode: false,
+            promocodeError: errorMsg,
+            loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+            loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+          ));
+        }
+      } on DioException catch (e) {
+        logger.e('DioException validating promocode', error: e);
+        final errorMessage = _extractErrorMessageFromDioException(e) ?? 
+            'Ошибка при проверке промокода';
+        
+        emit(CheckoutInitial(
+          customerName: currentState.customerName,
+          customerPhone: currentState.customerPhone,
+          customerAddress: currentState.customerAddress,
+          deliveryMethod: currentState.deliveryMethod,
+          paymentMethod: currentState.paymentMethod,
+          deliveryCost: currentState.deliveryCost,
+          isCalculatingDelivery: currentState.isCalculatingDelivery,
+          promocode: null,
+          promocodeDiscount: null,
+          isValidatingPromocode: false,
+          promocodeError: errorMessage,
+          loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+          loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+        ));
+      }
+    } catch (e, stackTrace) {
+      logger.e('Unexpected error validating promocode', error: e, stackTrace: stackTrace);
+      String errorMessage = 'Ошибка при проверке промокода';
+      if (e is Exception) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        if (msg.isNotEmpty && msg != 'Exception') {
+          errorMessage = msg;
+        }
+      }
+      
+      emit(CheckoutInitial(
+        customerName: currentState.customerName,
+        customerPhone: currentState.customerPhone,
+        customerAddress: currentState.customerAddress,
+        deliveryMethod: currentState.deliveryMethod,
+        paymentMethod: currentState.paymentMethod,
+        deliveryCost: currentState.deliveryCost,
+        isCalculatingDelivery: currentState.isCalculatingDelivery,
+        promocode: null,
+        promocodeDiscount: null,
+        isValidatingPromocode: false,
+        promocodeError: errorMessage,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+      ));
+    }
+  }
+
+  /// Извлекает сообщение об ошибке из ответа сервера
+  String? _extractErrorMessage(dynamic responseData) {
+    if (responseData == null) return null;
+    
+    if (responseData is Map) {
+      return responseData['detail'] as String? ??
+          responseData['error'] as String? ??
+          responseData['message'] as String? ??
+          (responseData['errors'] is List && (responseData['errors'] as List).isNotEmpty
+              ? (responseData['errors'] as List).first.toString()
+              : null);
+    }
+    
+    if (responseData is String) {
+      return responseData;
+    }
+    
+    return null;
+  }
+
+  /// Извлекает сообщение об ошибке из DioException
+  String? _extractErrorMessageFromDioException(DioException e) {
+    // Сначала пытаемся извлечь из response.data
+    if (e.response?.data != null) {
+      final errorMsg = _extractErrorMessage(e.response!.data);
+      if (errorMsg != null && errorMsg.isNotEmpty) {
+        return errorMsg;
+      }
+    }
+    
+    // Обрабатываем специфичные типы ошибок
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Превышено время ожидания. Проверьте подключение к интернету';
+      
+      case DioExceptionType.badResponse:
+        if (e.response?.statusCode != null) {
+          switch (e.response!.statusCode) {
+            case 404:
+              return 'Сервис не найден';
+            case 500:
+              return 'Ошибка на сервере. Попробуйте позже';
+            case 503:
+              return 'Сервис временно недоступен';
+            default:
+              return 'Ошибка сервера (${e.response!.statusCode})';
+          }
+        }
+        return 'Ошибка при обработке запроса';
+      
+      case DioExceptionType.cancel:
+        return 'Запрос отменен';
+      
+      case DioExceptionType.connectionError:
+        return 'Ошибка подключения. Проверьте интернет-соединение';
+      
+      case DioExceptionType.unknown:
+        if (e.message?.contains('SocketException') == true) {
+          return 'Нет подключения к интернету';
+        }
+        return e.message ?? 'Неизвестная ошибка';
+      
+      default:
+        return e.message ?? 'Ошибка при проверке промокода';
+    }
+  }
+
+  void _onClearPromocode(ClearPromocode event, Emitter<CheckoutState> emit) {
+    final currentState = state;
+    if (currentState is CheckoutInitial) {
+      emit(CheckoutInitial(
+        customerName: currentState.customerName,
+        customerPhone: currentState.customerPhone,
+        customerAddress: currentState.customerAddress,
+        deliveryMethod: currentState.deliveryMethod,
+        paymentMethod: currentState.paymentMethod,
+        deliveryCost: currentState.deliveryCost,
+        isCalculatingDelivery: currentState.isCalculatingDelivery,
+        promocode: null,
+        promocodeDiscount: null,
+        isValidatingPromocode: false,
+        promocodeError: null,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
+      ));
+    }
+  }
+
   void _onUpdateCustomerName(UpdateCustomerName event, Emitter<CheckoutState> emit) {
     final currentState = state;
     if (currentState is CheckoutInitial) {
@@ -109,6 +451,14 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         customerAddress: currentState.customerAddress,
         deliveryMethod: currentState.deliveryMethod,
         paymentMethod: currentState.paymentMethod,
+        deliveryCost: currentState.deliveryCost,
+        isCalculatingDelivery: currentState.isCalculatingDelivery,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     }
   }
@@ -122,6 +472,14 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         customerAddress: currentState.customerAddress,
         deliveryMethod: currentState.deliveryMethod,
         paymentMethod: currentState.paymentMethod,
+        deliveryCost: currentState.deliveryCost,
+        isCalculatingDelivery: currentState.isCalculatingDelivery,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     }
   }
@@ -139,6 +497,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         paymentMethod: currentState.paymentMethod,
         deliveryCost: null, // Сбрасываем стоимость доставки при изменении адреса
         isCalculatingDelivery: false,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     }
   }
@@ -154,6 +518,10 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         paymentMethod: currentState.paymentMethod,
         deliveryCost: event.method == 'pickup' ? null : currentState.deliveryCost,
         isCalculatingDelivery: false,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
       );
       emit(newState);
       
@@ -178,6 +546,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         paymentMethod: event.method,
         deliveryCost: currentState.deliveryCost,
         isCalculatingDelivery: currentState.isCalculatingDelivery,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     }
   }
@@ -205,6 +579,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
       paymentMethod: currentState.paymentMethod,
       deliveryCost: currentState.deliveryCost,
       isCalculatingDelivery: true,
+      promocode: currentState.promocode,
+      promocodeDiscount: currentState.promocodeDiscount,
+      isValidatingPromocode: currentState.isValidatingPromocode,
+      promocodeError: currentState.promocodeError,
+      loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+      loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
     ));
     
     try {
@@ -286,6 +666,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
             paymentMethod: currentState.paymentMethod,
             deliveryCost: deliveryCost,
             isCalculatingDelivery: false,
+            promocode: currentState.promocode,
+            promocodeDiscount: currentState.promocodeDiscount,
+            isValidatingPromocode: currentState.isValidatingPromocode,
+            promocodeError: currentState.promocodeError,
+            loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+            loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
           ));
         } else {
           logger.w('⚠️ No delivery offers found');
@@ -297,6 +683,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
             paymentMethod: currentState.paymentMethod,
             deliveryCost: null,
             isCalculatingDelivery: false,
+            promocode: currentState.promocode,
+            promocodeDiscount: currentState.promocodeDiscount,
+            isValidatingPromocode: currentState.isValidatingPromocode,
+            promocodeError: currentState.promocodeError,
+            loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+            loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
           ));
         }
       } else {
@@ -312,6 +704,12 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         paymentMethod: currentState.paymentMethod,
         deliveryCost: null,
         isCalculatingDelivery: false,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     } catch (e) {
       logger.e('Unexpected error calculating delivery cost', error: e);
@@ -323,8 +721,42 @@ class CheckoutBloc extends Bloc<CheckoutEvent, CheckoutState> {
         paymentMethod: currentState.paymentMethod,
         deliveryCost: null,
         isCalculatingDelivery: false,
+        promocode: currentState.promocode,
+        promocodeDiscount: currentState.promocodeDiscount,
+        isValidatingPromocode: currentState.isValidatingPromocode,
+        promocodeError: currentState.promocodeError,
+        loyaltyPointsToSpend: currentState.loyaltyPointsToSpend,
+        loyaltyPointsDiscount: currentState.loyaltyPointsDiscount,
       ));
     }
+  }
+
+  void _onUpdateLoyaltyPointsToSpend(
+    UpdateLoyaltyPointsToSpend event,
+    Emitter<CheckoutState> emit,
+  ) {
+    final currentState = state;
+    if (currentState is! CheckoutInitial) return;
+
+    // Рассчитываем скидку: 1 балл = 1 рубль
+    // Ограничение до 90% будет применяться на бэкенде
+    final discount = event.points ?? 0.0;
+
+    emit(CheckoutInitial(
+      customerName: currentState.customerName,
+      customerPhone: currentState.customerPhone,
+      customerAddress: currentState.customerAddress,
+      deliveryMethod: currentState.deliveryMethod,
+      paymentMethod: currentState.paymentMethod,
+      deliveryCost: currentState.deliveryCost,
+      isCalculatingDelivery: currentState.isCalculatingDelivery,
+      promocode: currentState.promocode,
+      promocodeDiscount: currentState.promocodeDiscount,
+      isValidatingPromocode: currentState.isValidatingPromocode,
+      promocodeError: currentState.promocodeError,
+      loyaltyPointsToSpend: event.points,
+      loyaltyPointsDiscount: discount,
+    ));
   }
 }
 

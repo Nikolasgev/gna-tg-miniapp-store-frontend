@@ -11,6 +11,21 @@ class AppConfig {
   static Environment get environment => _environment;
   static String get baseUrl => _baseUrl;
 
+  /// Мок Telegram User ID для режима разработки/профилирования
+  /// Можно переопределить через переменную окружения MOCK_TELEGRAM_ID
+  static int get mockTelegramId {
+    const mockIdFromEnv = String.fromEnvironment('MOCK_TELEGRAM_ID', defaultValue: '');
+    if (mockIdFromEnv.isNotEmpty) {
+      try {
+        return int.parse(mockIdFromEnv);
+      } catch (e) {
+        // Если не удалось распарсить, используем значение по умолчанию
+      }
+    }
+    // Значение по умолчанию для разработки
+    return 123456789;
+  }
+
   static void setEnvironment(Environment env) {
     _environment = env;
     switch (env) {
@@ -24,14 +39,20 @@ class AppConfig {
           // По умолчанию используем IP-адрес для Telegram WebView (localhost не работает)
           // Для изменения IP-адреса используйте: flutter run --dart-define=API_BASE_URL=http://YOUR_IP:8000
           // Или установите переменную окружения API_BASE_URL
-          _baseUrl = 'http://192.168.31.173:8000';
+          _baseUrl = 'http://192.168.50.68:8000';
         }
         break;
       case Environment.staging:
         _baseUrl = 'https://api-staging.example.com';
         break;
       case Environment.production:
-        _baseUrl = 'https://api.example.com';
+        // Можно переопределить через переменную окружения API_BASE_URL
+        final apiBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: '');
+        if (apiBaseUrl.isNotEmpty) {
+          _baseUrl = apiBaseUrl;
+        } else {
+          _baseUrl = 'https://gnatgminiapp-production.up.railway.app';
+        }
         break;
     }
   }

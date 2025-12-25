@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tg_store/core/utils/logger.dart';
 import 'package:tg_store/core/utils/telegram_webapp.dart';
 import 'package:tg_store/core/services/business_service.dart';
 import 'package:tg_store/mini_app/application/bloc/auth/auth_bloc.dart';
@@ -17,29 +16,22 @@ class _InitializationScreenState extends State<InitializationScreen> {
   @override
   void initState() {
     super.initState();
-    logger.i('InitializationScreen initState');
     _initializeApp();
   }
 
   void _initializeApp() async {
-    logger.i('Starting app initialization');
-    
     // Get init_data from Telegram WebApp
     final initData = TelegramWebApp.getInitData();
-    logger.d('Telegram initData: ${initData != null && initData.isNotEmpty ? "available (${initData.length} chars)" : "null or empty"}');
     
     // Get business_slug from URL or init_data
     final businessSlug = await _extractBusinessSlug();
-    logger.d('Business slug: $businessSlug');
 
     // If running outside Telegram or init_data is empty, use mock data for development
     if (initData == null || initData.isEmpty || initData.trim().isEmpty) {
-      logger.i('Development mode: skipping validation, going to catalog');
       // Development mode - skip validation and go directly to catalog
       // In production, this should show an error
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          logger.i('Navigating to catalog (dev mode)');
           AppRouter.toCatalog();
         }
       });
@@ -47,7 +39,6 @@ class _InitializationScreenState extends State<InitializationScreen> {
     }
 
     // Trigger validation
-    logger.i('Production mode: validating init_data');
     context.read<AuthBloc>().add(
           ValidateInitData(
             initData: initData,
@@ -79,15 +70,13 @@ class _InitializationScreenState extends State<InitializationScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          logger.i('Authentication successful, navigating to catalog');
           // Navigate to catalog
           AppRouter.toCatalog();
         } else if (state is AuthError) {
-          logger.e('Authentication error: ${state.message}');
           // Show error and retry option
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Ошибка инициализации: ${state.message}'),
+              content: const Text('Ошибка инициализации. Проверьте подключение к интернету.'),
               action: SnackBarAction(
                 label: 'Повторить',
                 onPressed: _initializeApp,
@@ -97,13 +86,10 @@ class _InitializationScreenState extends State<InitializationScreen> {
         }
       },
       builder: (context, state) {
-        logger.d('InitializationScreen build, state: ${state.runtimeType}');
-        
         // In development mode (no Telegram), show loading briefly then navigate
         final initData = TelegramWebApp.getInitData();
         if (initData == null) {
           // Development mode - show loading briefly
-          logger.d('Showing loading (dev mode)');
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
@@ -112,7 +98,6 @@ class _InitializationScreenState extends State<InitializationScreen> {
         }
 
         if (state is AuthLoading) {
-          logger.d('Showing loading (auth in progress)');
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),
@@ -134,7 +119,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    state.message,
+                    'Проверьте подключение к интернету и попробуйте еще раз.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),

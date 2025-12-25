@@ -110,11 +110,21 @@ class OrdersRepositoryImpl implements OrdersRepository {
     String? paymentStatus,
   }) async {
     try {
-      final data = <String, dynamic>{
-        'status': status,
-      };
-      if (paymentStatus != null) {
+      final data = <String, dynamic>{};
+      
+      // Добавляем статус только если он не пустой
+      if (status.isNotEmpty) {
+        data['status'] = status;
+      }
+      
+      // Добавляем статус оплаты если он указан
+      if (paymentStatus != null && paymentStatus.isNotEmpty) {
         data['payment_status'] = paymentStatus;
+      }
+      
+      // Проверяем что хотя бы один статус указан
+      if (data.isEmpty) {
+        return Left(ServerFailure('Необходимо указать хотя бы один статус для обновления'));
       }
 
       final response = await _apiClient.dio.patch(

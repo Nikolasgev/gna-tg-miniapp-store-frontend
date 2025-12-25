@@ -1,30 +1,23 @@
 import 'package:logger/logger.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
-/// Глобальный экземпляр логгера для использования во всем приложении
+/// Упрощенный логгер (минимум логирования)
 final appLogger = Logger(
-  printer: PrettyPrinter(
-    methodCount: 2, // Количество методов в стек-трейсе
-    errorMethodCount: 8, // Количество методов в стек-трейсе для ошибок
-    lineLength: 120, // Длина строки
-    colors: true, // Цветной вывод
-    printEmojis: true, // Эмодзи в логах
-    printTime: true, // Время в логах
-  ),
-  level: Level.debug, // Уровень логирования (debug, info, warning, error)
-);
-
-/// Упрощенный логгер для production (без деталей)
-final productionLogger = Logger(
   printer: SimplePrinter(
     colors: false,
-    printTime: true,
+    printTime: false,
   ),
-  level: Level.warning, // В production только warning и error
+  level: kDebugMode ? Level.warning : Level.error, // В production только error, в debug warning и error
 );
 
-/// Получить логгер в зависимости от режима
+/// Получить логгер
 Logger get logger {
-  // В production используем упрощенный логгер
-  // В debug используем детальный
   return appLogger;
+}
+
+/// Вспомогательная функция для безопасного логирования ошибок без показа пользователю
+void logError(String message, {Object? error, StackTrace? stackTrace}) {
+  if (kDebugMode) {
+    logger.e(message, error: error, stackTrace: stackTrace);
+  }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tg_store/core/theme/app_theme.dart';
 import 'package:tg_store/core/utils/logger.dart';
 import 'package:tg_store/core/services/theme_service.dart';
+import 'package:tg_store/core/services/business_theme_service.dart';
+import 'package:tg_store/core/theme/business_theme.dart';
 import 'package:tg_store/mini_app/application/bloc/auth/auth_bloc.dart';
 import 'package:tg_store/mini_app/presentation/bloc/cart/cart_bloc.dart';
 import 'package:tg_store/mini_app/presentation/bloc/catalog/catalog_bloc.dart';
@@ -14,6 +16,8 @@ import 'package:tg_store/mini_app/data/repositories/auth_repository_impl.dart';
 import 'package:tg_store/mini_app/data/repositories/order_repository_impl.dart';
 import 'package:tg_store/mini_app/presentation/navigation/app_router.dart';
 import 'package:tg_store/mini_app/data/repositories/catalog_repository_impl.dart';
+import 'package:tg_store/mini_app/data/repositories/loyalty_repository_impl.dart';
+import 'package:tg_store/mini_app/application/bloc/loyalty/loyalty_bloc.dart';
 import 'package:tg_store/l10n/app_localizations.dart';
 
 class App extends StatefulWidget {
@@ -28,7 +32,9 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   ThemeMode _themeMode = ThemeMode.dark;
   Locale? _locale;
+  BusinessTheme? _businessTheme;
   bool _isLoading = true;
+  final BusinessThemeService _businessThemeService = BusinessThemeService();
 
   @override
   void initState() {
@@ -38,13 +44,18 @@ class _AppState extends State<App> {
 
   Future<void> _loadSettings() async {
     try {
+      // Загружаем пользовательские настройки (тема и локаль)
       final themeMode = await ThemeService.getThemeMode();
       final locale = await ThemeService.getLocale();
+      
+      // Загружаем тему бизнеса с бекенда
+      final businessTheme = await _businessThemeService.loadBusinessTheme();
       
       if (mounted) {
         setState(() {
           _themeMode = themeMode;
           _locale = locale;
+          _businessTheme = businessTheme;
           _isLoading = false;
         });
       }
@@ -134,13 +145,25 @@ class _AppState extends State<App> {
             );
           },
         ),
+        BlocProvider<LoyaltyBloc>(
+          create: (context) {
+            logger.i('Creating LoyaltyBloc');
+            return LoyaltyBloc(
+              loyaltyRepository: LoyaltyRepositoryImpl(),
+            );
+          },
+        ),
       ],
       child: MaterialApp.router(
         title: 'Telegram Mini App',
         debugShowCheckedModeBanner: false,
         themeMode: _themeMode,
-        theme: AppTheme.lightTheme, // Светлая тема (если нужна)
-        darkTheme: AppTheme.darkTheme, // Темная тема
+        theme: _businessTheme?.hasCustomColors == true
+            ? AppTheme.createLightTheme(_businessTheme!)
+            : AppTheme.lightTheme,
+        darkTheme: _businessTheme?.hasCustomColors == true
+            ? AppTheme.createDarkTheme(_businessTheme!)
+            : AppTheme.darkTheme,
         locale: _locale, // Установленная локаль
         routerConfig: AppRouter.router,
         localizationsDelegates: const [

@@ -20,7 +20,7 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   // Выбранные вариации для каждой категории
-  Map<String, String> _selectedVariations = {};
+  final Map<String, String> _selectedVariations = {};
 
   @override
   void initState() {
@@ -187,7 +187,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 16),
                   Text('Ошибка', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Text(state.message),
+                  const Text('Не удалось загрузить товар. Попробуйте еще раз.'),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
@@ -221,13 +221,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Product image
-                  AspectRatio(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 400,
+                      maxWidth: double.infinity,
+                    ),
+                    child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: product.imageUrl != null
                         ? Image.network(
                             ApiConstants.imageProxyFull(product.imageUrl!, AppConfig.baseUrl),
                             fit: BoxFit.contain,
                             width: double.infinity,
+                              // Оптимизация: ограничение размера кеша для экономии памяти
+                              cacheWidth: 800,
+                              cacheHeight: 450,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return Container(
@@ -257,6 +265,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             child: const Icon(
                               Icons.image_not_supported,
                               size: 64,
+                              ),
                             ),
                           ),
                   ),
@@ -292,7 +301,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 // Price with variations
                                 Builder(
                                   builder: (context) {
-                                    double finalPrice = product.price;
+                                    // Базовая цена с учетом скидки
+                                    double basePrice = product.currentPrice;
+                                    double originalPrice = product.price;
+                                    
                                     // Добавляем цены выбранных вариаций
                                     if (product.variations != null && _selectedVariations.isNotEmpty) {
                                       final variations = product.variations as Map<String, dynamic>;
@@ -304,14 +316,82 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           if (varData is Map && varData.containsKey(varValue)) {
                                             final price = varData[varValue];
                                             if (price is num) {
-                                              finalPrice += price.toDouble();
+                                              basePrice += price.toDouble();
+                                              originalPrice += price.toDouble();
                                             }
                                           }
                                         }
                                       }
                                     }
+                                    
+                                    // Если есть активная скидка, показываем новую цену и старую справа
+                                    if (product.hasActiveDiscount && basePrice < originalPrice) {
+                                      final colorScheme = Theme.of(context).colorScheme;
+                                      return Row(
+                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '${basePrice.toStringAsFixed(0)} ₽',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .headlineSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorScheme.tertiary,
+                                                ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.tertiary.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              product.discountPercentage != null
+                                                  ? '-${product.discountPercentage!.toStringAsFixed(0)}%'
+                                                  : 'Скидка',
+                                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                color: colorScheme.tertiary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Старая цена справа (зачеркнутая) в красивом контейнере
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.surfaceContainerHighest,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: colorScheme.outline.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${originalPrice.toStringAsFixed(0)} ₽',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleMedium
+                                                  ?.copyWith(
+                                                    decoration: TextDecoration.lineThrough,
+                                                    decorationThickness: 2,
+                                                    color: colorScheme.onSurface.withOpacity(0.6),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }
+                                    
+                                    // Обычная цена без скидки
                                     return Text(
-                                      '${finalPrice.toStringAsFixed(0)} ₽',
+                                      '${basePrice.toStringAsFixed(0)} ₽',
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineSmall

@@ -93,5 +93,19 @@ class ApiConstants {
   static String adminCategories(String businessSlug) => '$apiVersion/categories/$businessSlug/categories';
   static String adminCategory(String categoryId) => '$apiVersion/categories/$categoryId';
   static String adminOrders(String businessId) => '$apiVersion/businesses/$businessId/orders';
+  
+  // Promocodes endpoints
+  static String validatePromocode(String businessId) => '$apiVersion/businesses/$businessId/promocodes/validate';
+  static String createPromocode(String businessId) => '$apiVersion/businesses/$businessId/promocodes';
+  static String promocodes(String businessId) => '$apiVersion/businesses/$businessId/promocodes';
+  static String promocode(String promocodeId) => '$apiVersion/promocodes/$promocodeId';
+  
+  // Loyalty endpoints
+  static String loyaltyAccount(String businessId, int userTelegramId) => '$apiVersion/businesses/$businessId/loyalty/account/$userTelegramId';
+  static String loyaltyAccountDetail(String businessId, int userTelegramId) => '$apiVersion/businesses/$businessId/loyalty/account/$userTelegramId/detail';
+  static String loyaltyAccountBySlug(String businessSlug) => '$apiVersion/businesses/$businessSlug/loyalty/account';
+  
+  // Analytics endpoints
+  static String analyticsSummary(String businessId) => '$apiVersion/businesses/$businessId/analytics/summary';
 }
 

@@ -34,7 +34,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
           emit(ProductLoaded(product, quantity: 1));
         },
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
       logger.e('Error loading product');
       emit(ProductError('Ошибка загрузки товара: $e'));
     }

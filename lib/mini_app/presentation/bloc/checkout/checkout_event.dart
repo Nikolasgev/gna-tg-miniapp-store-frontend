@@ -17,6 +17,8 @@ class SubmitOrder extends CheckoutEvent {
   final String paymentMethod; // cash or online
   final double totalAmount;
   final int? userTelegramId;
+  final String? promocodeCode; // Промокод для применения
+  final double? loyaltyPointsToSpend; // Баллы для списания
 
   const SubmitOrder({
     required this.businessSlug,
@@ -28,6 +30,8 @@ class SubmitOrder extends CheckoutEvent {
     required this.paymentMethod,
     required this.totalAmount,
     this.userTelegramId,
+    this.promocodeCode,
+    this.loyaltyPointsToSpend,
   });
 
   @override
@@ -41,6 +45,8 @@ class SubmitOrder extends CheckoutEvent {
         paymentMethod,
         totalAmount,
         userTelegramId,
+        promocodeCode,
+        loyaltyPointsToSpend,
       ];
 }
 
@@ -104,5 +110,35 @@ class CalculateDeliveryCost extends CheckoutEvent {
 
   @override
   List<Object?> get props => [customerAddress, items];
+}
+
+class ValidatePromocode extends CheckoutEvent {
+  final String businessSlug;
+  final String promocode;
+  final double orderAmount; // Сумма заказа для валидации
+  final int? userTelegramId;
+
+  const ValidatePromocode({
+    required this.businessSlug,
+    required this.promocode,
+    required this.orderAmount,
+    this.userTelegramId,
+  });
+
+  @override
+  List<Object?> get props => [businessSlug, promocode, orderAmount, userTelegramId];
+}
+
+class ClearPromocode extends CheckoutEvent {
+  const ClearPromocode();
+}
+
+class UpdateLoyaltyPointsToSpend extends CheckoutEvent {
+  final double? points;
+
+  const UpdateLoyaltyPointsToSpend(this.points);
+
+  @override
+  List<Object?> get props => [points];
 }
 

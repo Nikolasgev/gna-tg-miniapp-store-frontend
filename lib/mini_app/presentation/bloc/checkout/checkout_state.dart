@@ -15,6 +15,12 @@ class CheckoutInitial extends CheckoutState {
   final String paymentMethod; // cash or online
   final double? deliveryCost; // Стоимость доставки
   final bool isCalculatingDelivery; // Идет ли расчет доставки
+  final String? promocode; // Промокод
+  final double? promocodeDiscount; // Размер скидки по промокоду
+  final bool isValidatingPromocode; // Идет ли валидация промокода
+  final String? promocodeError; // Ошибка валидации промокода
+  final double? loyaltyPointsToSpend; // Баллы для списания
+  final double? loyaltyPointsDiscount; // Размер скидки от баллов
 
   const CheckoutInitial({
     this.customerName = '',
@@ -24,6 +30,12 @@ class CheckoutInitial extends CheckoutState {
     this.paymentMethod = 'cash',
     this.deliveryCost,
     this.isCalculatingDelivery = false,
+    this.promocode,
+    this.promocodeDiscount,
+    this.isValidatingPromocode = false,
+    this.promocodeError,
+    this.loyaltyPointsToSpend,
+    this.loyaltyPointsDiscount,
   });
 
   @override
@@ -35,6 +47,12 @@ class CheckoutInitial extends CheckoutState {
         paymentMethod,
         deliveryCost,
         isCalculatingDelivery,
+        promocode,
+        promocodeDiscount,
+        isValidatingPromocode,
+        promocodeError,
+        loyaltyPointsToSpend,
+        loyaltyPointsDiscount,
       ];
 }
 

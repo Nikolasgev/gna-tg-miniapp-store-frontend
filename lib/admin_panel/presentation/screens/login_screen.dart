@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authRepository = AdminAuthRepository();
   bool _isLoading = false;
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -33,7 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final isValid = await _authRepository.verifyPassword(
+      final isValid = await _authRepository.login(
+        _usernameController.text.trim(),
         _passwordController.text,
       );
 
@@ -47,9 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Неверный пароль'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('Неверный логин или пароль'),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
@@ -58,8 +61,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка подключения: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: const Text('Ошибка подключения. Проверьте интернет-соединение.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -99,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Введите пароль администратора',
+                  'Войдите в свой аккаунт',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -107,10 +110,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 48),
                 AppTextField(
+                  controller: _usernameController,
+                  labelText: 'Логин или email',
+                  prefixIcon: Icons.person,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  height: 56,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Введите логин или email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
                   controller: _passwordController,
                   labelText: 'Пароль',
                   prefixIcon: Icons.lock,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _handleLogin(),
                   height: 56,
                   validator: (value) {
                     if (value == null || value.isEmpty) {

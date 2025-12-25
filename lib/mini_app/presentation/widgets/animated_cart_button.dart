@@ -126,6 +126,18 @@ class _AnimatedCartButtonState extends State<AnimatedCartButton>
   }
 
   void _onAddToCart() {
+    // Проверяем наличие товара
+    if (!widget.product.isInStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Товар "${widget.product.title}" отсутствует на складе'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
     // Обновляем количество для отображения сразу
     setState(() {
       _displayQuantity = 1;
@@ -165,6 +177,33 @@ class _AnimatedCartButtonState extends State<AnimatedCartButton>
   void _onIncrement() {
     final cartState = context.read<CartBloc>().state;
     final currentQuantity = _getQuantity(cartState);
+    
+    // Проверяем наличие товара и ограничение по количеству
+    if (!widget.product.isInStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Товар "${widget.product.title}" отсутствует на складе'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    
+    // Проверяем, не превышает ли новое количество доступное количество на складе
+    if (widget.product.stockQuantity != null) {
+      final availableQuantity = widget.product.stockQuantity!;
+      if (currentQuantity >= availableQuantity) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Доступно только $availableQuantity шт. товара "${widget.product.title}"'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+    }
     
     setState(() {
       _displayQuantity = currentQuantity + 1;
@@ -260,22 +299,27 @@ class _AnimatedCartButtonState extends State<AnimatedCartButton>
               // 2. При обратной анимации: progress <= 0 (анимация полностью завершена)
               // Это предотвращает эффект сужения виджета при обратной анимации
               if ((!isReversing && progress < 0.3) || (isReversing && progress <= 0.0)) {
+                final isDisabled = !widget.product.isInStock;
                 return SizedBox(
                   width: _buttonSize,
                   height: _buttonSize,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: _onAddToCart,
+                    onTap: isDisabled ? null : _onAddToCart,
                     child: Container(
                       width: _buttonSize,
                       height: _buttonSize,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: isDisabled 
+                            ? Theme.of(context).colorScheme.surfaceContainerHighest
+                            : Theme.of(context).colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                                 child: Icon(
                                   Icons.add,
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                        color: isDisabled
+                            ? Theme.of(context).colorScheme.onSurface.withOpacity(0.38)
+                            : Theme.of(context).colorScheme.onPrimary,
                                   size: 24,
                                 ),
                     ),
@@ -409,18 +453,29 @@ class _AnimatedCartButtonState extends State<AnimatedCartButton>
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _onIncrement,
-                          child: Container(
+                          child: Builder(
+                            builder: (context) {
+                              final isDisabled = !widget.product.isInStock || 
+                                  (widget.product.stockQuantity != null && 
+                                   displayQty >= widget.product.stockQuantity!);
+                              return Container(
                             width: _buttonSize,
                             height: _buttonSize,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
+                                  color: isDisabled
+                                      ? Theme.of(context).colorScheme.surfaceContainerHighest
+                                      : Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.add,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                                  color: isDisabled
+                                      ? Theme.of(context).colorScheme.onSurface.withOpacity(0.38)
+                                      : Theme.of(context).colorScheme.onPrimary,
                               size: 20,
                             ),
+                              );
+                            },
                           ),
                         ),
                       ),

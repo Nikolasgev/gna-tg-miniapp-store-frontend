@@ -56,7 +56,9 @@ class CategoriesScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Удалить'),
           ),
         ],
@@ -78,16 +80,16 @@ class CategoriesScreen extends StatelessWidget {
         listener: (context, state) {
           if (state is CategoryDeleted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Категория удалена'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Категория удалена'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
           } else if (state is CategoryError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
+                content: const Text('Произошла ошибка. Попробуйте еще раз.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -108,7 +110,7 @@ class CategoriesScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Ошибка: ${state.message}'),
+                      const Text('Не удалось загрузить категории. Попробуйте еще раз.'),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
@@ -135,7 +137,11 @@ class CategoriesScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.category_outlined, size: 64, color: Colors.grey),
+                          Icon(
+                            Icons.category_outlined, 
+                            size: 64, 
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                          ),
                           const SizedBox(height: 16),
                           const Text('Нет категорий'),
                           const SizedBox(height: 8),
@@ -182,20 +188,39 @@ class CategoriesScreen extends StatelessWidget {
                                   ),
                                 );
                               },
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editCategory(context, category),
-                                    tooltip: 'Редактировать',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _deleteCategory(context, category),
-                                    tooltip: 'Удалить',
-                                  ),
-                                ],
+                              trailing: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 120),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      iconSize: 20,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 36,
+                                        minHeight: 36,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () => _editCategory(context, category),
+                                      tooltip: 'Редактировать',
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.delete, 
+                                        color: Theme.of(context).colorScheme.error, 
+                                        size: 20,
+                                      ),
+                                      iconSize: 20,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 36,
+                                        minHeight: 36,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () => _deleteCategory(context, category),
+                                      tooltip: 'Удалить',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -285,8 +310,8 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
           } else if (state is CategoryError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
+                content: const Text('Произошла ошибка. Попробуйте еще раз.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -347,14 +372,22 @@ class _CreateCategoryScreenState extends State<CreateCategoryScreen> {
                       },
                     ),
                     const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: isLoading ? null : () => _submit(context),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : () => _submit(context),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator()
+                                : Text(widget.category != null ? 'Сохранить изменения' : 'Создать категорию'),
+                          ),
+                        ),
                       ),
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : Text(widget.category != null ? 'Сохранить изменения' : 'Создать категорию'),
                     ),
                   ],
                 ),

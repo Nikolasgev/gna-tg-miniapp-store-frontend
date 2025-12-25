@@ -110,25 +110,58 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-               final products = data.map((json) => Product(
-                 id: json['id'] as String,
-                 businessId: businessSlug,
-                 title: json['title'] as String,
-                 description: json['description'] as String?,
-                 price: (json['price'] as num).toDouble(),
-                 currency: json['currency'] as String? ?? 'RUB',
-                 sku: json['sku'] as String?,
-                 imageUrl: json['image_url'] as String?,
-                 variations: json['variations'] != null 
-                     ? Map<String, dynamic>.from(json['variations'] as Map)
-                     : null,
-                 isActive: json['is_active'] as bool? ?? true,
-                 categoryIds: (json['category_ids'] as List<dynamic>?)
-                     ?.map((id) => id.toString())
-                     .toList() ?? [],
-                 createdAt: DateTime.now(),
-                 updatedAt: DateTime.now(),
-               )).toList();
+               final products = data.map((json) {
+                 // Парсим поля скидок
+                 double? discountPercentage;
+                 if (json['discount_percentage'] != null) {
+                   discountPercentage = (json['discount_percentage'] as num).toDouble();
+                 }
+                 
+                 double? discountPrice;
+                 if (json['discount_price'] != null) {
+                   discountPrice = (json['discount_price'] as num).toDouble();
+                 }
+                 
+                 DateTime? discountValidFrom;
+                 if (json['discount_valid_from'] != null) {
+                   discountValidFrom = DateTime.tryParse(json['discount_valid_from'] as String);
+                 }
+                 
+                 DateTime? discountValidUntil;
+                 if (json['discount_valid_until'] != null) {
+                   discountValidUntil = DateTime.tryParse(json['discount_valid_until'] as String);
+                 }
+                 
+                 int? stockQuantity;
+                 if (json['stock_quantity'] != null) {
+                   stockQuantity = json['stock_quantity'] as int;
+                 }
+                 
+                 return Product(
+                   id: json['id'] as String,
+                   businessId: businessSlug,
+                   title: json['title'] as String,
+                   description: json['description'] as String?,
+                   price: (json['price'] as num).toDouble(),
+                   currency: json['currency'] as String? ?? 'RUB',
+                   sku: json['sku'] as String?,
+                   imageUrl: json['image_url'] as String?,
+                   variations: json['variations'] != null 
+                       ? Map<String, dynamic>.from(json['variations'] as Map)
+                       : null,
+                   isActive: json['is_active'] as bool? ?? true,
+                   categoryIds: (json['category_ids'] as List<dynamic>?)
+                       ?.map((id) => id.toString())
+                       .toList() ?? [],
+                   discountPercentage: discountPercentage,
+                   discountPrice: discountPrice,
+                   discountValidFrom: discountValidFrom,
+                   discountValidUntil: discountValidUntil,
+                   stockQuantity: stockQuantity,
+                   createdAt: DateTime.now(),
+                   updatedAt: DateTime.now(),
+                 );
+               }).toList();
 
         return Right(products);
       }
@@ -162,25 +195,57 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
       if (response.statusCode == 200) {
         final json = response.data;
-               final product = Product(
-                 id: json['id'] as String,
-                 businessId: json['business_id'] as String? ?? '',
-                 title: json['title'] as String,
-                 description: json['description'] as String?,
-                 price: (json['price'] as num).toDouble(),
-                 currency: json['currency'] as String? ?? 'RUB',
-                 sku: json['sku'] as String?,
-                 imageUrl: json['image_url'] as String?,
-                 variations: json['variations'] != null 
-                     ? Map<String, dynamic>.from(json['variations'] as Map)
-                     : null,
-                 isActive: json['is_active'] as bool? ?? true,
-                 categoryIds: (json['category_ids'] as List<dynamic>?)
-                     ?.map((id) => id.toString())
-                     .toList() ?? [],
-                 createdAt: DateTime.now(),
-                 updatedAt: DateTime.now(),
-               );
+        
+        // Парсим поля скидок
+        double? discountPercentage;
+        if (json['discount_percentage'] != null) {
+          discountPercentage = (json['discount_percentage'] as num).toDouble();
+        }
+        
+        double? discountPrice;
+        if (json['discount_price'] != null) {
+          discountPrice = (json['discount_price'] as num).toDouble();
+        }
+        
+        DateTime? discountValidFrom;
+        if (json['discount_valid_from'] != null) {
+          discountValidFrom = DateTime.tryParse(json['discount_valid_from'] as String);
+        }
+        
+        DateTime? discountValidUntil;
+        if (json['discount_valid_until'] != null) {
+          discountValidUntil = DateTime.tryParse(json['discount_valid_until'] as String);
+        }
+        
+        int? stockQuantity;
+        if (json['stock_quantity'] != null) {
+          stockQuantity = json['stock_quantity'] as int;
+        }
+        
+        final product = Product(
+          id: json['id'] as String,
+          businessId: json['business_id'] as String? ?? '',
+          title: json['title'] as String,
+          description: json['description'] as String?,
+          price: (json['price'] as num).toDouble(),
+          currency: json['currency'] as String? ?? 'RUB',
+          sku: json['sku'] as String?,
+          imageUrl: json['image_url'] as String?,
+          variations: json['variations'] != null 
+              ? Map<String, dynamic>.from(json['variations'] as Map)
+              : null,
+          isActive: json['is_active'] as bool? ?? true,
+          categoryIds: (json['category_ids'] as List<dynamic>?)
+              ?.map((id) => id.toString())
+              .toList() ?? [],
+          discountPercentage: discountPercentage,
+          discountPrice: discountPrice,
+          discountValidFrom: discountValidFrom,
+          discountValidUntil: discountValidUntil,
+          stockQuantity: stockQuantity,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
 
         return Right(product);
       }

@@ -99,7 +99,7 @@ class _OrdersHistoryScreenState extends State<OrdersHistoryScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
-                  Text(state.message),
+                  const Text('Не удалось загрузить заказы. Попробуйте еще раз.'),
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: _loadOrders,

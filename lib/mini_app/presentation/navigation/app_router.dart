@@ -8,6 +8,7 @@ import 'package:tg_store/mini_app/presentation/screens/initialization_screen.dar
 import 'package:tg_store/mini_app/presentation/screens/order_detail_screen.dart';
 import 'package:tg_store/mini_app/presentation/screens/orders_history_screen.dart';
 import 'package:tg_store/mini_app/presentation/screens/product_detail_screen.dart';
+import 'package:tg_store/mini_app/presentation/screens/loyalty_screen.dart';
 
 class AppRouter {
   static final GoRouter _router = GoRouter(
@@ -61,6 +62,14 @@ class AppRouter {
         builder: (context, state) {
           _logNavigation(state);
           return const OrdersHistoryScreen();
+        },
+      ),
+      GoRoute(
+        path: '/loyalty',
+        name: 'loyalty',
+        builder: (context, state) {
+          _logNavigation(state);
+          return const LoyaltyScreen();
         },
       ),
     ],

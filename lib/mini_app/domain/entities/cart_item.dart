@@ -17,7 +17,7 @@ class CartItem extends Equatable {
   });
 
   double get totalPrice {
-    double basePrice = product.price;
+    double basePrice = product.currentPrice;
     
     // Добавляем цены выбранных вариаций
     if (product.variations != null && selectedVariations != null) {

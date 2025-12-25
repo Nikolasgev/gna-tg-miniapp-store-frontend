@@ -3,10 +3,12 @@ import 'package:tg_store/core/utils/logger.dart' show logger;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tg_store/core/constants/api_constants.dart';
 import 'package:tg_store/core/network/api_client.dart';
+import 'package:intl/intl.dart';
 
 // Условные импорты для веба и нативных платформ
 import 'dart:html' if (dart.library.io) 'dart:io' as platform;
@@ -192,7 +194,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
             child: const Text('Удалить'),
           ),
         ],
@@ -239,7 +243,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(message),
-                backgroundColor: isDeactivated ? Colors.orange : Colors.green,
+                backgroundColor: isDeactivated 
+                    ? Theme.of(context).colorScheme.tertiary 
+                    : Theme.of(context).colorScheme.primary,
                 duration: Duration(seconds: isDeactivated ? 5 : 3),
               ),
             );
@@ -273,7 +279,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
-              backgroundColor: Colors.orange,
+              backgroundColor: Theme.of(context).colorScheme.tertiary,
               duration: const Duration(seconds: 5),
             ),
           );
@@ -366,32 +372,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FilterChip(
-                        label: const Text('Все'),
-                        selected: _filterActive == null,
-                        onSelected: (_) => _onStatusFilterChanged(null),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: FilterChip(
+                          label: const Text('Все'),
+                          selected: _filterActive == null,
+                          onSelected: (_) => _onStatusFilterChanged(null),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FilterChip(
-                        label: const Text('Активные'),
-                        selected: _filterActive == true,
-                        onSelected: (_) => _onStatusFilterChanged(true),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: FilterChip(
+                          label: const Text('Активные'),
+                          selected: _filterActive == true,
+                          onSelected: (_) => _onStatusFilterChanged(true),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: FilterChip(
-                        label: const Text('Неактивные'),
-                        selected: _filterActive == false,
-                        onSelected: (_) => _onStatusFilterChanged(false),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 120),
+                        child: FilterChip(
+                          label: const Text('Неактивные'),
+                          selected: _filterActive == false,
+                          onSelected: (_) => _onStatusFilterChanged(false),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
                     ),
                   ],
@@ -407,22 +422,31 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: FilterChip(
-                          label: const Text('Все категории'),
-                          selected: _selectedCategoryId == null,
-                          onSelected: (_) => _onCategoryFilterChanged(null),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 150),
+                          child: FilterChip(
+                            label: const Text('Все категории'),
+                            selected: _selectedCategoryId == null,
+                            onSelected: (_) => _onCategoryFilterChanged(null),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
                         ),
                       ),
                       ..._categories.map((category) => Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: FilterChip(
-                              label: Text(category['name'] ?? ''),
-                              selected: _selectedCategoryId == category['id'],
-                              onSelected: (_) => _onCategoryFilterChanged(category['id']),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 150),
+                              child: FilterChip(
+                                label: Text(
+                                  category['name'] ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                selected: _selectedCategoryId == category['id'],
+                                onSelected: (_) => _onCategoryFilterChanged(category['id']),
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
                             ),
                           )),
                     ],
@@ -453,7 +477,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+                          Icon(
+                            Icons.inventory_2_outlined, 
+                            size: 64, 
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                          ),
                           const SizedBox(height: 16),
                           const Text('Нет товаров'),
                           const SizedBox(height: 8),
@@ -481,7 +509,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   Text(
                                     'ID: ${product['id']}',
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Colors.grey[600],
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                                           fontSize: 11,
                                         ),
                                   ),
@@ -489,32 +517,97 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   Text(
                                     '${product['price']} ${product['currency'] ?? 'RUB'}',
                                   ),
+                                  if (product['stock_quantity'] != null) ...[
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          product['stock_quantity'] > 0 
+                                              ? Icons.inventory_2 
+                                              : Icons.inventory_2_outlined,
+                                          size: 14,
+                                          color: product['stock_quantity'] > 0 
+                                              ? Theme.of(context).colorScheme.primary
+                                              : Theme.of(context).colorScheme.error,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Склад: ${product['stock_quantity']} шт.',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                color: product['stock_quantity'] > 0 
+                                                    ? Theme.of(context).colorScheme.primary
+                                                    : Theme.of(context).colorScheme.error,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ] else ...[
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.all_inclusive,
+                                          size: 14,
+                                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Неограниченно',
+                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                                fontSize: 11,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                               isThreeLine: true,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    product['is_active'] == true
-                                        ? Icons.check_circle
-                                        : Icons.cancel,
-                                    color: product['is_active'] == true
-                                        ? Colors.green
-                                        : Colors.grey,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    onPressed: () => _editProduct(product),
-                                    tooltip: 'Редактировать',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _deleteProduct(product),
-                                    tooltip: 'Удалить',
-                                  ),
-                                ],
+                              trailing: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 120),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      product['is_active'] == true
+                                          ? Icons.check_circle
+                                          : Icons.cancel,
+                                      color: product['is_active'] == true
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      iconSize: 20,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 36,
+                                        minHeight: 36,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () => _editProduct(product),
+                                      tooltip: 'Редактировать',
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.delete, 
+                                        color: Theme.of(context).colorScheme.error, 
+                                        size: 20,
+                                      ),
+                                      iconSize: 20,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 36,
+                                        minHeight: 36,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      onPressed: () => _deleteProduct(product),
+                                      tooltip: 'Удалить',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -551,6 +644,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _skuController = TextEditingController();
+  final _stockQuantityController = TextEditingController();
   final ApiClient _apiClient = ApiClient();
   bool _isLoading = false;
   bool _isActive = true;
@@ -563,6 +657,15 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   
   // Вариации: список объектов {key: String, values: List<{value: String, price: double}>}
   List<Map<String, dynamic>> _variations = [];
+  
+  // Поля для скидок
+  bool _hasDiscount = false;
+  String _discountType = 'percentage'; // 'percentage' или 'fixed'
+  final _discountPercentageController = TextEditingController();
+  final _discountPriceController = TextEditingController();
+  bool _hasDiscountPeriod = false;
+  DateTime? _discountValidFrom;
+  DateTime? _discountValidUntil;
 
   @override
   void initState() {
@@ -573,6 +676,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       _descriptionController.text = widget.product!['description'] ?? '';
       _priceController.text = (widget.product!['price'] ?? 0).toString();
       _skuController.text = widget.product!['sku'] ?? '';
+      if (widget.product!['stock_quantity'] != null) {
+        _stockQuantityController.text = widget.product!['stock_quantity'].toString();
+      }
       _existingImageUrl = widget.product!['image_url'] as String?;
       _imageWasRemoved = false; // Сбрасываем флаг при загрузке продукта
       // Загружаем вариации из JSON
@@ -619,6 +725,24 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         _selectedCategoryIds = List<String>.from(
           widget.product!['category_ids'].map((id) => id.toString()),
         );
+      }
+      // Загружаем данные скидок
+      if (widget.product!['discount_percentage'] != null) {
+        _hasDiscount = true;
+        _discountType = 'percentage';
+        _discountPercentageController.text = widget.product!['discount_percentage'].toString();
+      } else if (widget.product!['discount_price'] != null) {
+        _hasDiscount = true;
+        _discountType = 'fixed';
+        _discountPriceController.text = widget.product!['discount_price'].toString();
+      }
+      if (widget.product!['discount_valid_from'] != null) {
+        _discountValidFrom = DateTime.tryParse(widget.product!['discount_valid_from']);
+        _hasDiscountPeriod = true;
+      }
+      if (widget.product!['discount_valid_until'] != null) {
+        _discountValidUntil = DateTime.tryParse(widget.product!['discount_valid_until']);
+        _hasDiscountPeriod = true;
       }
     } else if (widget.defaultCategoryId != null) {
       // Если это создание нового товара и указана категория по умолчанию
@@ -699,7 +823,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${htmlFile.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -707,21 +831,20 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Не удалось прочитать файл'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('Не удалось прочитать файл'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
         }
       }
     } catch (e) {
-      logger.d('❌ Error in _pickImageWeb: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось выбрать файл. Попробуйте еще раз.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -749,7 +872,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${file.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -757,21 +880,20 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Не удалось получить данные файла'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('Не удалось получить данные файла'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
         }
       }
     } catch (e) {
-      logger.d('❌ Error in _pickImageNative: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось выбрать файл. Попробуйте еще раз.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -838,8 +960,8 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка загрузки изображения: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось загрузить изображение. Попробуйте еще раз.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -850,6 +972,21 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
+    }
+
+    // Проверка дат скидки
+    if (_hasDiscount && _hasDiscountPeriod) {
+      if (_discountValidFrom != null && _discountValidUntil != null) {
+        if (_discountValidUntil!.isBefore(_discountValidFrom!)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Дата окончания должна быть позже даты начала'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+          return;
+        }
+      }
     }
 
     setState(() {
@@ -915,10 +1052,37 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         'price': double.parse(_priceController.text),
         'currency': _currency,
         'sku': _skuController.text.isEmpty ? null : _skuController.text,
+        'stock_quantity': _stockQuantityController.text.isEmpty 
+            ? null 
+            : int.tryParse(_stockQuantityController.text),
         'variations': variations,
         'is_active': _isActive,
         'category_ids': _selectedCategoryIds,
       };
+      
+      // Добавляем поля скидок
+      if (_hasDiscount) {
+        if (_discountType == 'percentage' && _discountPercentageController.text.isNotEmpty) {
+          data['discount_percentage'] = double.tryParse(_discountPercentageController.text);
+          data['discount_price'] = null;
+        } else if (_discountType == 'fixed' && _discountPriceController.text.isNotEmpty) {
+          data['discount_price'] = double.tryParse(_discountPriceController.text);
+          data['discount_percentage'] = null;
+        }
+        if (_hasDiscountPeriod) {
+          data['discount_valid_from'] = _discountValidFrom?.toIso8601String();
+          data['discount_valid_until'] = _discountValidUntil?.toIso8601String();
+        } else {
+          data['discount_valid_from'] = null;
+          data['discount_valid_until'] = null;
+        }
+      } else {
+        // Если скидка отключена, удаляем все поля скидок
+        data['discount_percentage'] = null;
+        data['discount_price'] = null;
+        data['discount_valid_from'] = null;
+        data['discount_valid_until'] = null;
+      }
       
       // Добавляем image_url только если он был изменен
       // Для обновления: если imageUrl != null (новый файл или удаление), отправляем
@@ -929,9 +1093,11 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
           data['image_url'] = imageUrl;
         }
         // Если image_url не менялся, не отправляем поле - бэкенд сохранит старое значение
+        // stock_quantity уже добавлен в data выше и всегда отправляется при обновлении
       } else {
         // При создании всегда отправляем image_url
         data['image_url'] = imageUrl;
+        // stock_quantity уже добавлен в data выше
       }
 
       if (widget.product != null) {
@@ -949,10 +1115,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             Navigator.pop(context, true);
           }
         } else {
-          logger.d('❌ Update failed with status: ${response.statusCode}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ошибка обновления: статус ${response.statusCode}')),
+              const SnackBar(content: Text('Не удалось обновить товар. Попробуйте еще раз.')),
             );
             setState(() {
               _isLoading = false;
@@ -974,10 +1139,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             Navigator.pop(context, true);
           }
         } else {
-          logger.d('❌ Create failed with status: ${response.statusCode}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Ошибка создания: статус ${response.statusCode}')),
+              const SnackBar(content: Text('Не удалось создать товар. Попробуйте еще раз.')),
             );
             setState(() {
               _isLoading = false;
@@ -988,7 +1152,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
+          const SnackBar(content: Text('Произошла ошибка. Попробуйте еще раз.')),
         );
       }
     } finally {
@@ -1006,7 +1170,48 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     _skuController.dispose();
+    _stockQuantityController.dispose();
+    _discountPercentageController.dispose();
+    _discountPriceController.dispose();
     super.dispose();
+  }
+  
+  Future<void> _selectDiscountDate(BuildContext context, bool isStartDate) async {
+    final initialDate = isStartDate
+        ? (_discountValidFrom ?? DateTime.now())
+        : (_discountValidUntil ?? DateTime.now().add(const Duration(days: 30)));
+    
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+    );
+
+    if (picked != null) {
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialDate),
+      );
+
+      if (time != null) {
+        final dateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          time.hour,
+          time.minute,
+        );
+
+        setState(() {
+          if (isStartDate) {
+            _discountValidFrom = dateTime;
+          } else {
+            _discountValidUntil = dateTime;
+          }
+        });
+      }
+    }
   }
   
   void _addVariation() {
@@ -1139,6 +1344,32 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              controller: _stockQuantityController,
+              decoration: const InputDecoration(
+                labelText: 'Количество на складе',
+                hintText: 'Оставьте пустым для неограниченного количества',
+                border: OutlineInputBorder(),
+                helperText: 'Введите число или оставьте пустым',
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  final numValue = int.tryParse(value);
+                  if (numValue == null) {
+                    return 'Введите корректное число';
+                  }
+                  if (numValue < 0) {
+                    return 'Количество не может быть отрицательным';
+                  }
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
             // Загрузка изображения
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1157,7 +1388,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1173,7 +1406,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                               return Container(
                                 width: 60,
                                 height: 60,
-                                color: Colors.grey.shade200,
+                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                                 child: const Icon(Icons.broken_image),
                               );
                             },
@@ -1184,9 +1417,12 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Текущее изображение',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                style: TextStyle(
+                                  fontSize: 12, 
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
                               ),
                               Text(
                                 _existingImageUrl!,
@@ -1212,10 +1448,13 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                     ),
                   ),
                 // Кнопка загрузки нового изображения
-                OutlinedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(_selectedImageFile != null ? 'Изменить файл' : 'Загрузить изображение'),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: OutlinedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.upload_file),
+                    label: Text(_selectedImageFile != null ? 'Изменить файл' : 'Загрузить изображение'),
+                  ),
                 ),
               ],
             ),
@@ -1253,19 +1492,24 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   'Вариации товара',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                TextButton.icon(
-                  onPressed: _addVariation,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Добавить'),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 150),
+                  child: TextButton.icon(
+                    onPressed: _addVariation,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Добавить'),
+                  ),
                 ),
               ],
             ),
             if (_variations.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
                   'Нет вариаций. Нажмите "Добавить" для создания.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 ),
               ),
             ..._variations.asMap().entries.map((entry) {
@@ -1298,7 +1542,10 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: Icon(
+                              Icons.delete, 
+                              color: Theme.of(context).colorScheme.error,
+                            ),
                             onPressed: () => _removeVariation(variationIndex),
                             tooltip: 'Удалить категорию',
                           ),
@@ -1362,28 +1609,198 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                               ),
                               const SizedBox(width: 8),
                               IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                icon: Icon(
+                                  Icons.delete, 
+                                  color: Theme.of(context).colorScheme.error, 
+                                  size: 20,
+                                ),
                                 onPressed: () => _removeVariationValue(variationIndex, valueIndex),
                                 tooltip: 'Удалить значение',
                               ),
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                       // Кнопка добавления значения
-                      TextButton.icon(
-                        onPressed: () => _addVariationValue(variationIndex),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Добавить значение'),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 200),
+                        child: TextButton.icon(
+                          onPressed: () => _addVariationValue(variationIndex),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Добавить значение'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               );
-            }).toList(),
+            }),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 8),
+            // Секция скидок
+            SwitchListTile(
+              key: ValueKey('discount_switch_$_hasDiscount'),
+              title: const Text(
+                'Скидка на товар',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              subtitle: const Text('Включить скидку на этот товар'),
+              value: _hasDiscount,
+              onChanged: (value) {
+                setState(() {
+                  _hasDiscount = value;
+                  if (!value) {
+                    // При отключении скидки очищаем все связанные поля
+                    _hasDiscountPeriod = false;
+                    _discountValidFrom = null;
+                    _discountValidUntil = null;
+                    _discountPercentageController.clear();
+                    _discountPriceController.clear();
+                  }
+                });
+              },
+              // Оптимизация для веб-платформы
+              dense: false,
+              visualDensity: VisualDensity.standard,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+            ),
+            if (_hasDiscount) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                key: ValueKey('discount_type_dropdown_$_discountType'),
+                initialValue: _discountType,
+                decoration: const InputDecoration(
+                  labelText: 'Тип скидки',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'percentage',
+                    child: Text('Процентная (%)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fixed',
+                    child: Text('Фиксированная цена (₽)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      // Сначала очищаем противоположное поле
+                      if (value == 'percentage') {
+                        _discountPriceController.clear();
+                      } else {
+                        _discountPercentageController.clear();
+                      }
+                      // Затем меняем тип
+                      _discountType = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _discountType == 'percentage'
+                    ? TextFormField(
+                        key: const ValueKey('discount_percentage_field'),
+                        controller: _discountPercentageController,
+                        decoration: const InputDecoration(
+                          labelText: 'Процент скидки (%)',
+                          hintText: '10',
+                          border: OutlineInputBorder(),
+                          helperText: 'Введите число от 0 до 100',
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (_hasDiscount && value != null && value.isNotEmpty) {
+                            final numValue = double.tryParse(value);
+                            if (numValue == null) {
+                              return 'Введите корректное число';
+                            }
+                            if (numValue < 0 || numValue > 100) {
+                              return 'Процент должен быть от 0 до 100';
+                            }
+                          }
+                          return null;
+                        },
+                      )
+                    : TextFormField(
+                        key: const ValueKey('discount_price_field'),
+                        controller: _discountPriceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Цена со скидкой (₽)',
+                          hintText: '100',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        validator: (value) {
+                          if (_hasDiscount && value != null && value.isNotEmpty) {
+                            final numValue = double.tryParse(value);
+                            if (numValue == null) {
+                              return 'Введите корректное число';
+                            }
+                            if (numValue <= 0) {
+                              return 'Цена должна быть больше 0';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                key: ValueKey('discount_period_switch_$_hasDiscountPeriod'),
+                title: const Text('Ограничить период действия'),
+                value: _hasDiscountPeriod,
+                onChanged: _hasDiscount
+                    ? (value) {
+                        setState(() {
+                          _hasDiscountPeriod = value;
+                          if (!value) {
+                            _discountValidFrom = null;
+                            _discountValidUntil = null;
+                          }
+                        });
+                      }
+                    : null, // Блокируем изменение, если скидка отключена
+              ),
+              if (_hasDiscountPeriod) ...[
+                const SizedBox(height: 8),
+                ListTile(
+                  title: const Text('Дата начала'),
+                  subtitle: Text(
+                    _discountValidFrom != null
+                        ? DateFormat('dd.MM.yyyy HH:mm').format(_discountValidFrom!)
+                        : 'Не установлена',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () => _selectDiscountDate(context, true),
+                ),
+                ListTile(
+                  title: const Text('Дата окончания'),
+                  subtitle: Text(
+                    _discountValidUntil != null
+                        ? DateFormat('dd.MM.yyyy HH:mm').format(_discountValidUntil!)
+                        : 'Не установлена',
+                  ),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () => _selectDiscountDate(context, false),
+                ),
+              ],
+              const SizedBox(height: 16),
+            ],
+            const Divider(),
             const SizedBox(height: 16),
             SwitchListTile(
               title: const Text('Активен'),
@@ -1407,31 +1824,45 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                 children: _categories.map((category) {
                   final categoryId = category['id'] as String;
                   final isSelected = _selectedCategoryIds.contains(categoryId);
-                  return FilterChip(
-                    label: Text(category['name'] ?? ''),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedCategoryIds.add(categoryId);
-                        } else {
-                          _selectedCategoryIds.remove(categoryId);
-                        }
-                      });
-                    },
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    child: FilterChip(
+                      label: Text(
+                        category['name'] ?? '',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedCategoryIds.add(categoryId);
+                          } else {
+                            _selectedCategoryIds.remove(categoryId);
+                          }
+                        });
+                      },
+                    ),
                   );
                 }).toList(),
               ),
             ],
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator()
+                        : Text(widget.product != null ? 'Сохранить изменения' : 'Создать товар'),
+                  ),
+                ),
               ),
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : Text(widget.product != null ? 'Сохранить изменения' : 'Создать товар'),
             ),
           ],
         ),

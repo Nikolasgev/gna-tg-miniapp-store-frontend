@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tg_store/core/config/environment.dart';
 import 'package:tg_store/core/utils/logger.dart' show logger;
 
 class ApiClient {
   late final Dio _dio;
+  String? _authToken;
+  static const String _tokenKey = 'admin_access_token';
 
   ApiClient() {
     // Проверяем, что baseUrl установлен
@@ -84,21 +87,58 @@ class ApiClient {
         },
       ),
     );
+    
+    // Загружаем токен из хранилища при инициализации
+    _loadToken();
   }
 
   Dio get dio => _dio;
 
+  Future<void> _loadToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+      if (token != null && token.isNotEmpty) {
+        _authToken = token;
+      }
+    } catch (e) {
+      // Игнорируем ошибки загрузки токена
+    }
+  }
+
   String? _getAuthToken() {
-    // TODO: Get token from storage (shared_preferences or secure storage)
-    return null;
+    return _authToken;
+  }
+
+  /// Установить токен авторизации
+  Future<void> setAuthToken(String token) async {
+    _authToken = token;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+    } catch (e) {
+      // Игнорируем ошибки сохранения токена
+    }
+  }
+
+  /// Очистить токен авторизации
+  Future<void> clearAuthToken() async {
+    _authToken = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+    } catch (e) {
+      // Игнорируем ошибки удаления токена
+    }
   }
 
   void _handleUnauthorized() {
-    // TODO: Handle unauthorized - clear token, navigate to login
+    // Очищаем токен при 401 ошибке
+    clearAuthToken();
   }
 
   void _handleForbidden() {
-    // TODO: Handle forbidden - show error message
+    // Обработка 403 ошибки
   }
 }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:tg_store/l10n/app_localizations.dart';
 import 'package:tg_store/core/services/theme_service.dart';
+import 'package:tg_store/core/services/business_service.dart';
+import 'package:tg_store/core/services/business_theme_service.dart';
 import 'package:tg_store/core/utils/logger.dart';
 import 'package:tg_store/mini_app/presentation/app.dart';
 
@@ -14,6 +16,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   ThemeMode _themeMode = ThemeMode.dark;
   Locale? _selectedLocale;
+  String? _currentBusinessSlug;
   bool _isLoading = true;
 
   @override
@@ -28,11 +31,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final themeMode = await ThemeService.getThemeMode();
       final locale = await ThemeService.getLocale();
+      final businessSlug = await BusinessService.getBusinessSlug();
       
       if (mounted) {
         setState(() {
           _themeMode = themeMode;
           _selectedLocale = locale;
+          _currentBusinessSlug = businessSlug ?? 'default-business';
           _isLoading = false;
         });
       }
@@ -71,6 +76,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (appState != null) {
         appState.updateLocale(newLocale);
       }
+    }
+  }
+  
+  Future<void> _switchBusiness(String newSlug) async {
+    await BusinessService.setBusinessSlug(newSlug);
+    
+    // Очищаем кэш темы бизнеса
+    final businessThemeService = BusinessThemeService();
+    businessThemeService.clearCache();
+    
+    // Показываем сообщение
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Бизнес изменен на: $newSlug. Перезапустите приложение.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      
+      // Перезагружаем настройки
+      setState(() {
+        _currentBusinessSlug = newSlug;
+      });
     }
   }
 
@@ -157,6 +185,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 const Divider(),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Переключение бизнеса (для тестирования)
+          Card(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Переключение бизнеса (тест)',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Текущий: ${_currentBusinessSlug ?? "не установлен"}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                RadioListTile<String>(
+                  title: const Text('Кофейня (default-business)'),
+                  subtitle: const Text('Кофе, десерты, напитки'),
+                  value: 'default-business',
+                  groupValue: _currentBusinessSlug,
+                  onChanged: (value) {
+                    if (value != null) {
+                      _switchBusiness(value);
+                    }
+                  },
+                ),
+                RadioListTile<String>(
+                  title: const Text('Косметика для волос (hair-cosmetics)'),
+                  subtitle: const Text('Шампуни, маски, средства для волос'),
+                  value: 'hair-cosmetics',
+                  groupValue: _currentBusinessSlug,
+                  onChanged: (value) {
+                    if (value != null) {
+                      _switchBusiness(value);
+                    }
+                  },
+                ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    '⚠️ После переключения перезапустите приложение',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                  ),
+                ),
               ],
             ),
           ),

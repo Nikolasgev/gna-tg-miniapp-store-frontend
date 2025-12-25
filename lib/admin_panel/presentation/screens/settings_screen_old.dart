@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -104,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка загрузки настроек: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -173,9 +172,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _selectedLogoFile = null; // Очищаем выбранный файл после сохранения
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Настройки сохранены'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Text('Настройки сохранены'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
             ),
           );
         }
@@ -185,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка сохранения: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -254,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${htmlFile.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -262,9 +261,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Не удалось прочитать файл'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('Не удалось прочитать файл'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -276,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -303,7 +302,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${file.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -311,9 +310,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Не удалось получить данные файла'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('Не удалось получить данные файла'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -325,7 +324,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -387,7 +386,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Ошибка загрузки изображения: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -639,11 +638,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               strokeWidth: 2,
                             ),
                           )

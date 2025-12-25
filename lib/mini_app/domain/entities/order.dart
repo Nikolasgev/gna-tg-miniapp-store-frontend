@@ -57,6 +57,13 @@ class Order extends Equatable {
   final String customerPhone;
   final String? customerAddress;
   final double totalAmount;
+  final double? subtotalAmount;  // Сумма до применения скидок
+  final double? discountAmount;  // Общая сумма скидки
+  final double? deliveryCost;  // Стоимость доставки
+  final String? deliveryMethod;  // Способ доставки (pickup/delivery)
+  final String? promocodeId;  // ID применённого промокода
+  final double? loyaltyPointsEarned;  // Баллы, заработанные за заказ
+  final double? loyaltyPointsSpent;  // Баллы, потраченные на заказ
   final String currency;
   final OrderStatus status;
   final PaymentStatus paymentStatus;
@@ -74,6 +81,13 @@ class Order extends Equatable {
     required this.customerPhone,
     this.customerAddress,
     required this.totalAmount,
+    this.subtotalAmount,
+    this.discountAmount,
+    this.deliveryCost,
+    this.deliveryMethod,
+    this.promocodeId,
+    this.loyaltyPointsEarned,
+    this.loyaltyPointsSpent,
     this.currency = 'RUB',
     required this.status,
     required this.paymentStatus,
@@ -93,6 +107,13 @@ class Order extends Equatable {
         customerPhone,
         customerAddress,
         totalAmount,
+        subtotalAmount,
+        discountAmount,
+        deliveryCost,
+        deliveryMethod,
+        promocodeId,
+        loyaltyPointsEarned,
+        loyaltyPointsSpent,
         currency,
         status,
         paymentStatus,

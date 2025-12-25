@@ -84,6 +84,9 @@ class CartScreen extends StatelessWidget {
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.contain,
+                                    // Оптимизация: ограничение размера кеша
+                                    cacheWidth: 200,
+                                    cacheHeight: 200,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
                                         width: 60,
@@ -129,7 +132,7 @@ class CartScreen extends StatelessWidget {
                                 }),
                                 const SizedBox(height: 4),
                               ],
-                              Text('${item.product.price.toStringAsFixed(0)} ₽ × ${item.quantity}'),
+                              Text('${item.product.currentPrice.toStringAsFixed(0)} ₽ × ${item.quantity}'),
                             ],
                           ),
                           trailing: Row(

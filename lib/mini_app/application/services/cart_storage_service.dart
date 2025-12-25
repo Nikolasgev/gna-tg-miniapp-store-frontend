@@ -99,6 +99,10 @@ class CartStorageService {
       'categoryIds': product.categoryIds,
       'createdAt': product.createdAt.toIso8601String(),
       'updatedAt': product.updatedAt.toIso8601String(),
+      'discount_percentage': product.discountPercentage,
+      'discount_price': product.discountPrice,
+      'discount_valid_from': product.discountValidFrom?.toIso8601String(),
+      'discount_valid_until': product.discountValidUntil?.toIso8601String(),
     };
   }
 
@@ -120,6 +124,18 @@ class CartStorageService {
           const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      discountPercentage: json['discount_percentage'] != null 
+          ? (json['discount_percentage'] as num).toDouble() 
+          : null,
+      discountPrice: json['discount_price'] != null 
+          ? (json['discount_price'] as num).toDouble() 
+          : null,
+      discountValidFrom: json['discount_valid_from'] != null 
+          ? DateTime.parse(json['discount_valid_from'] as String) 
+          : null,
+      discountValidUntil: json['discount_valid_until'] != null 
+          ? DateTime.parse(json['discount_valid_until'] as String) 
+          : null,
     );
   }
 }

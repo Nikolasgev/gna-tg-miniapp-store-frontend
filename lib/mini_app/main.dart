@@ -29,8 +29,18 @@ void main() async {
     // TODO: Register adapters for Cart, Product, etc.
     
     // Set environment (can be changed based on build configuration)
-    logger.i('Setting environment to development');
-    AppConfig.setEnvironment(Environment.development);
+    // Для production используем production environment
+    final apiBaseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    final isProduction = apiBaseUrl.isNotEmpty || 
+        (const String.fromEnvironment('ENVIRONMENT', defaultValue: '') == 'production');
+    
+    if (isProduction) {
+      logger.i('Setting environment to production');
+      AppConfig.setEnvironment(Environment.production);
+    } else {
+      logger.i('Setting environment to development');
+      AppConfig.setEnvironment(Environment.development);
+    }
     logger.i('Environment configured: ${AppConfig.baseUrl}');
     
     logger.i('Running MiniApp...');

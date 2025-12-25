@@ -77,7 +77,10 @@ class SupportScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.telegram, color: Colors.blue),
+                  leading: Icon(
+                    Icons.telegram, 
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   title: const Text('Telegram'),
                   subtitle: Text(AppLocalizations.of(context)!.writeInTelegram),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),

@@ -18,7 +18,10 @@ class OrderRepositoryImpl implements domain.OrderRepository {
     String? customerAddress,
     required List<Map<String, dynamic>> items,
     required String paymentMethod,
+    required String deliveryMethod,
     int? userTelegramId,
+    String? promocodeCode,
+    double? loyaltyPointsToSpend,
   }) async {
     try {
       final data = {
@@ -32,10 +35,19 @@ class OrderRepositoryImpl implements domain.OrderRepository {
           'selected_variations': item['selected_variations'],
         }).toList(),
         'payment_method': paymentMethod,
+        'delivery_method': deliveryMethod,
       };
       
       if (userTelegramId != null) {
         data['user_telegram_id'] = userTelegramId;
+      }
+      
+      if (promocodeCode != null && promocodeCode.isNotEmpty) {
+        data['promocode'] = promocodeCode;
+      }
+      
+      if (loyaltyPointsToSpend != null && loyaltyPointsToSpend > 0) {
+        data['loyalty_points_to_spend'] = loyaltyPointsToSpend;
       }
       
       final response = await _apiClient.dio.post(
@@ -78,6 +90,8 @@ class OrderRepositoryImpl implements domain.OrderRepository {
         
         // Получаем данные заказа из ответа, если они есть
         final totalAmount = (orderData['total_amount'] as num?)?.toDouble() ?? 0.0;
+        final deliveryCost = (orderData['delivery_cost'] as num?)?.toDouble();
+        final deliveryMethod = orderData['delivery_method'] as String?;
         final currency = orderData['currency'] as String? ?? 'RUB';
         final status = orderData['status'] as String? ?? 'new';
         final paymentStatus = orderData['payment_status'] as String? ?? 'pending';
@@ -89,6 +103,8 @@ class OrderRepositoryImpl implements domain.OrderRepository {
           customerPhone: customerPhone,
           customerAddress: customerAddress,
           totalAmount: totalAmount,
+          deliveryCost: deliveryCost,
+          deliveryMethod: deliveryMethod,
           currency: currency,
           status: entities.OrderStatus.values.firstWhere(
             (e) => e.toString().split('.').last == status,
@@ -130,9 +146,26 @@ class OrderRepositoryImpl implements domain.OrderRepository {
         final message = e.response?.data['detail'] as String? ?? 'Ошибка валидации';
         return Left(ServerFailure(message));
       }
-      return Left(ServerFailure('Ошибка создания заказа: ${e.message}'));
+      
+      // Улучшенная обработка сетевых ошибок
+      String errorMessage = 'Ошибка создания заказа';
+      if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Не удалось подключиться к серверу. Проверьте подключение к интернету и убедитесь, что сервер запущен.';
+      } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Превышено время ожидания ответа от сервера. Попробуйте позже.';
+      } else if (e.message != null) {
+        errorMessage = 'Ошибка создания заказа: ${e.message}';
+      }
+      
+      logger.e('Order creation error: ${e.type}, message: ${e.message}');
+      if (e.response != null) {
+        logger.e('Response status: ${e.response?.statusCode}, data: ${e.response?.data}');
+      }
+      
+      return Left(ServerFailure(errorMessage));
     } catch (e) {
-      return Left(ServerFailure('Ошибка создания заказа: $e'));
+      logger.e('Unexpected error creating order: $e');
+      return Left(ServerFailure('Неожиданная ошибка: $e'));
     }
   }
 
@@ -213,6 +246,8 @@ class OrderRepositoryImpl implements domain.OrderRepository {
       customerPhone: orderData['customer_phone'] as String,
       customerAddress: orderData['customer_address'] as String?,
       totalAmount: (orderData['total_amount'] as num).toDouble(),
+      deliveryCost: (orderData['delivery_cost'] as num?)?.toDouble(),
+      deliveryMethod: orderData['delivery_method'] as String?,
       currency: orderData['currency'] as String? ?? 'RUB',
       status: _parseOrderStatus(orderData['status'] as String),
       paymentStatus: _parsePaymentStatus(orderData['payment_status'] as String),
@@ -296,6 +331,8 @@ class OrderRepositoryImpl implements domain.OrderRepository {
           customerPhone: orderData['customer_phone'] as String,
           customerAddress: orderData['customer_address'] as String?,
           totalAmount: (orderData['total_amount'] as num).toDouble(),
+          deliveryCost: (orderData['delivery_cost'] as num?)?.toDouble(),
+          deliveryMethod: orderData['delivery_method'] as String?,
           currency: orderData['currency'] as String,
           status: entities.OrderStatus.values.firstWhere(
               (e) => e.toString() == 'OrderStatus.${orderData['status']}',

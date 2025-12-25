@@ -191,22 +191,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(BuildContext context, String status) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status.toLowerCase()) {
       case 'new':
-        return Colors.blue;
+        return colorScheme.primary;
       case 'accepted':
-        return Colors.orange;
+        return colorScheme.tertiary;
       case 'preparing':
-        return Colors.purple;
+        return colorScheme.secondary;
       case 'ready':
-        return Colors.green;
+        return colorScheme.primary;
       case 'cancelled':
-        return Colors.red;
+        return colorScheme.error;
       case 'completed':
-        return Colors.grey;
+        return colorScheme.onSurface.withOpacity(0.5);
       default:
-        return Colors.grey;
+        return colorScheme.onSurface.withOpacity(0.5);
     }
   }
 
@@ -225,18 +226,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
-  Color _getPaymentStatusColor(String status) {
+  Color _getPaymentStatusColor(BuildContext context, String status) {
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status.toLowerCase()) {
       case 'pending':
-        return Colors.orange;
+        return colorScheme.tertiary;
       case 'paid':
-        return Colors.green;
+        return colorScheme.primary;
       case 'failed':
-        return Colors.red;
+        return colorScheme.error;
       case 'refunded':
-        return Colors.purple;
+        return colorScheme.secondary;
       default:
-        return Colors.grey;
+        return colorScheme.onSurface.withOpacity(0.5);
     }
   }
 
@@ -250,9 +252,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
         listener: (context, state) {
           if (state is OrderUpdated) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Статус обновлен'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Статус обновлен'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
             context.read<OrdersBloc>().add(LoadOrders(widget.businessSlug, limit: 50));
@@ -260,7 +262,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -326,7 +328,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           children: [
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _filterStatus,
+                                initialValue: _filterStatus,
                                 decoration: InputDecoration(
                                   labelText: 'Статус заказа',
                                   border: OutlineInputBorder(
@@ -371,7 +373,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: _filterPaymentStatus,
+                                initialValue: _filterPaymentStatus,
                                 decoration: InputDecoration(
                                   labelText: 'Статус оплаты',
                                   border: OutlineInputBorder(
@@ -419,7 +421,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text('Ошибка: $error'),
+                              const Text('Не удалось загрузить заказы. Попробуйте еще раз.'),
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: () {
@@ -435,7 +437,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
+                                  Icon(
+                                    Icons.receipt_long_outlined, 
+                                    size: 64, 
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                                  ),
                                   const SizedBox(height: 16),
                                   const Text('Нет заказов'),
                                   const SizedBox(height: 8),
@@ -467,11 +473,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                               tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               childrenPadding: const EdgeInsets.all(16.0),
                               leading: CircleAvatar(
-                                backgroundColor: _getStatusColor(currentStatus),
+                                backgroundColor: _getStatusColor(context, currentStatus),
                                 child: Text(
                                   '#${orderId.substring(0, 6)}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onPrimary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -493,7 +499,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${DateFormat('dd.MM.yyyy HH:mm').format(createdAt)}',
+                                    DateFormat('dd.MM.yyyy HH:mm').format(createdAt),
                                     style: Theme.of(context).textTheme.bodySmall,
                                   ),
                                   const SizedBox(height: 4),
@@ -505,51 +511,54 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   // Кнопки для изменения статусов - перемещены в subtitle
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: InkWell(
-                                          onTap: () => _showStatusDialog(context, orderId, currentStatus),
-                                          child: Chip(
-                                            label: Text(
-                                              _getStatusText(currentStatus),
-                                              style: const TextStyle(fontSize: 10),
-                                              overflow: TextOverflow.ellipsis,
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 200),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: InkWell(
+                                            onTap: () => _showStatusDialog(context, orderId, currentStatus),
+                                            child: Chip(
+                                              label: Text(
+                                                _getStatusText(currentStatus),
+                                                style: const TextStyle(fontSize: 10),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              backgroundColor: _getStatusColor(context, currentStatus).withOpacity(0.2),
+                                              labelStyle: TextStyle(
+                                                color: _getStatusColor(context, currentStatus),
+                                                fontSize: 10,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              visualDensity: VisualDensity.compact,
                                             ),
-                                            backgroundColor: _getStatusColor(currentStatus).withOpacity(0.2),
-                                            labelStyle: TextStyle(
-                                              color: _getStatusColor(currentStatus),
-                                              fontSize: 10,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            visualDensity: VisualDensity.compact,
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: InkWell(
-                                          onTap: () => _showPaymentStatusDialog(context, orderId, currentPaymentStatus),
-                                          child: Chip(
-                                            label: Text(
-                                              _getPaymentStatusText(currentPaymentStatus),
-                                              style: const TextStyle(fontSize: 10),
-                                              overflow: TextOverflow.ellipsis,
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: InkWell(
+                                            onTap: () => _showPaymentStatusDialog(context, orderId, currentPaymentStatus),
+                                            child: Chip(
+                                              label: Text(
+                                                _getPaymentStatusText(currentPaymentStatus),
+                                                style: const TextStyle(fontSize: 10),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              backgroundColor: _getPaymentStatusColor(context, currentPaymentStatus).withOpacity(0.2),
+                                              labelStyle: TextStyle(
+                                                color: _getPaymentStatusColor(context, currentPaymentStatus),
+                                                fontSize: 10,
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              visualDensity: VisualDensity.compact,
                                             ),
-                                            backgroundColor: _getPaymentStatusColor(currentPaymentStatus).withOpacity(0.2),
-                                            labelStyle: TextStyle(
-                                              color: _getPaymentStatusColor(currentPaymentStatus),
-                                              fontSize: 10,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            visualDensity: VisualDensity.compact,
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -603,30 +612,190 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     ),
                                     const SizedBox(height: 12),
                                     ...items.map<Widget>((item) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 12),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                item['title_snapshot'] as String? ?? 'Без названия',
-                                                style: Theme.of(context).textTheme.bodyMedium,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              '${item['quantity']} × ${item['unit_price']} = ${item['total_price']} ${order['currency'] ?? 'RUB'}',
-                                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                    fontWeight: FontWeight.w500,
+                                      final itemMetadata = item['item_metadata'] as Map<String, dynamic>?;
+                                      final selectedVariations = itemMetadata?['selected_variations'] as Map<String, dynamic>?;
+                                      final note = itemMetadata?['note'] as String?;
+                                      final categoryNames = itemMetadata?['category_names'] as List<dynamic>?;
+                                      final categorySurcharges = itemMetadata?['category_surcharges'] as Map<String, dynamic>?;
+                                      
+                                      return Card(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              // Название и цена
+                                              Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      item['title_snapshot'] as String? ?? 'Без названия',
+                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                            fontWeight: FontWeight.bold,
+                                                          ),
+                                                    ),
                                                   ),
-                                              textAlign: TextAlign.end,
-                                            ),
-                                          ],
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    '${item['quantity']} × ${item['unit_price']} = ${item['total_price']} ${order['currency'] ?? 'RUB'}',
+                                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                    textAlign: TextAlign.end,
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 8),
+                                              // Количество
+                                              Text(
+                                                'Количество: ${item['quantity']}',
+                                                style: Theme.of(context).textTheme.bodySmall,
+                                              ),
+                                              // Вариации
+                                              if (selectedVariations != null && selectedVariations.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Выбранные опции:',
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                ),
+                                                ...selectedVariations.entries.map((entry) {
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                                                    child: Text(
+                                                      '${entry.key}: ${entry.value}',
+                                                      style: Theme.of(context).textTheme.bodySmall,
+                                                    ),
+                                                  );
+                                                }),
+                                              ],
+                                              // Категории
+                                              if (categoryNames != null && categoryNames.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Категории: ${categoryNames.join(", ")}',
+                                                  style: Theme.of(context).textTheme.bodySmall,
+                                                ),
+                                              ],
+                                              // Доплаты за категории
+                                              if (categorySurcharges != null && categorySurcharges.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Доплаты:',
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                ),
+                                                ...categorySurcharges.entries.map((entry) {
+                                                  if (entry.value > 0) {
+                                                    return Padding(
+                                                      padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+                                                      child: Text(
+                                                        '${entry.key}: +${entry.value} ${order['currency'] ?? 'RUB'}',
+                                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                              color: Theme.of(context).colorScheme.primary,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return const SizedBox.shrink();
+                                                }),
+                                              ],
+                                              // Заметка
+                                              if (note != null && note.isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                Container(
+                                                  padding: const EdgeInsets.all(8.0),
+                                                  decoration: BoxDecoration(
+                                                    color: Theme.of(context).colorScheme.primaryContainer,
+                                                    borderRadius: BorderRadius.circular(4.0),
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Icon(
+                                                        Icons.note, 
+                                                        size: 16, 
+                                                        color: Theme.of(context).colorScheme.primary,
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          note,
+                                                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
                                         ),
                                       );
                                     }),
                                     const SizedBox(height: 8),
+                                    // Информация о доставке
+                                    if (order['order_metadata'] != null) ...[
+                                      const Divider(),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        'Доставка:',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Builder(
+                                        builder: (context) {
+                                          final metadata = order['order_metadata'] as Map<String, dynamic>?;
+                                          final deliveryMethod = metadata?['delivery_method'] as String?;
+                                          final deliveryCost = metadata?['delivery_cost'] as num?;
+                                          
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Способ: ${deliveryMethod == 'delivery' ? 'Доставка' : 'Самовывоз'}',
+                                                style: Theme.of(context).textTheme.bodyMedium,
+                                              ),
+                                              if (deliveryCost != null && deliveryCost > 0) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Стоимость доставки: $deliveryCost ${order['currency'] ?? 'RUB'}',
+                                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                        color: Theme.of(context).colorScheme.primary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                    // Итоговая сумма
+                                    const Divider(),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Итого:',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                        ),
+                                        Text(
+                                          '${order['total_amount']} ${order['currency'] ?? 'RUB'}',
+                                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ],

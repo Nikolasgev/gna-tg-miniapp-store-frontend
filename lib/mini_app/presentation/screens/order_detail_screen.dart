@@ -93,7 +93,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    Text(state.message),
+                    const Text('Не удалось загрузить заказ. Попробуйте еще раз.'),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       onPressed: () {
@@ -276,21 +276,80 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const Divider(height: 1, thickness: 2),
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Text(
-                        'Итого:',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      // Стоимость доставки (если есть)
+                      if (order.deliveryCost != null && order.deliveryCost! > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.local_shipping,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  order.deliveryMethod == 'delivery' ? 'Доставка' : 'Самовывоз',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                      ),
+                                ),
+                              ],
                             ),
-                      ),
-                      Text(
-                        '${order.totalAmount.toStringAsFixed(0)} ${order.currency}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                            Text(
+                              '${order.deliveryCost!.toStringAsFixed(0)} ${order.currency}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                  ),
                             ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      // Скидка (если есть)
+                      if (order.discountAmount != null && order.discountAmount! > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Скидка:',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                  ),
+                            ),
+                            Text(
+                              '-${order.discountAmount!.toStringAsFixed(0)} ${order.currency}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      // Итоговая сумма
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Итого:',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          Text(
+                            '${order.totalAmount.toStringAsFixed(0)} ${order.currency}',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

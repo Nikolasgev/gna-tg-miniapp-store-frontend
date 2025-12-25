@@ -51,7 +51,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           emit(OrdersLoaded(orders));
         },
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
       logger.e('Error loading orders');
       emit(OrdersError('Ошибка при загрузке заказов: $e'));
     }
@@ -94,7 +94,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           emit(OrdersLoaded(currentOrders, selectedOrder: order));
         },
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
       logger.e('Error loading order details');
       // Восстанавливаем предыдущее состояние с ошибкой
       if (currentOrders.isNotEmpty) {
@@ -150,7 +150,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
           }
         },
       );
-    } catch (e, stackTrace) {
+    } catch (e) {
       logger.e('Error canceling order');
       // Восстанавливаем предыдущее состояние с ошибкой
       if (currentOrders.isNotEmpty) {

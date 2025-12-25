@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:tg_store/admin_panel/application/bloc/settings/settings_bloc.dart';
 import 'package:tg_store/admin_panel/data/repositories/settings_repository_impl.dart';
+import 'package:tg_store/admin_panel/presentation/screens/theme_colors_screen.dart';
+import 'package:tg_store/core/theme/business_theme.dart';
 
 // Условные импорты для веба и нативных платформ
 import 'dart:html' if (dart.library.io) 'dart:io' as platform;
@@ -33,18 +34,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   // Controllers для UI настроек
   final _logoController = TextEditingController();
-  final _primaryColorController = TextEditingController();
-  final _backgroundColorController = TextEditingController();
-  final _textColorController = TextEditingController();
+  BusinessTheme? _currentTheme;
   
   // Controllers для YooKassa
   final _yookassaShopIdController = TextEditingController();
   final _yookassaSecretKeyController = TextEditingController();
   
+  // Controller для программы лояльности
+  final _loyaltyPointsPercentController = TextEditingController();
+  
   bool _supportsDelivery = false;
   bool _supportsPickup = true;
   List<String> _paymentMethods = ['cash'];
   PlatformFile? _selectedLogoFile;
+  
+  // Отслеживание изменений
+  bool _hasChanges = false;
   
   @override
   void dispose() {
@@ -53,11 +58,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _currencyController.dispose();
     _timezoneController.dispose();
     _logoController.dispose();
-    _primaryColorController.dispose();
-    _backgroundColorController.dispose();
-    _textColorController.dispose();
     _yookassaShopIdController.dispose();
     _yookassaSecretKeyController.dispose();
+    _loyaltyPointsPercentController.dispose();
     super.dispose();
   }
 
@@ -67,15 +70,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _currencyController.text = data['currency'] ?? 'RUB';
     _timezoneController.text = data['timezone'] ?? '';
     _logoController.text = data['logo'] ?? '';
-    _primaryColorController.text = data['primary_color'] ?? '';
-    _backgroundColorController.text = data['background_color'] ?? '';
-    _textColorController.text = data['text_color'] ?? '';
     _supportsDelivery = data['supports_delivery'] ?? false;
     _supportsPickup = data['supports_pickup'] ?? true;
     _paymentMethods = List<String>.from(data['payment_methods'] ?? ['cash']);
     _yookassaShopIdController.text = data['yookassa_shop_id'] ?? '';
     _yookassaSecretKeyController.text = data['yookassa_secret_key'] ?? '';
+    _loyaltyPointsPercentController.text = (data['loyalty_points_percent'] ?? 1.0).toString();
     _selectedLogoFile = null;
+    
+    // Загружаем тему из данных
+    _currentTheme = BusinessTheme.fromJson(data);
+    _hasChanges = false; // Сбрасываем флаг изменений после загрузки
+  }
+  
+  void _markAsChanged() {
+    if (!_hasChanges) {
+      setState(() {
+        _hasChanges = true;
+      });
+    }
   }
   
   Future<void> _saveSettings(SettingsBloc bloc) async {
@@ -100,8 +113,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         } else if (bloc.state is LogoUploadError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text((bloc.state as LogoUploadError).message),
-              backgroundColor: Colors.red,
+              content: const Text('Ошибка загрузки изображения. Попробуйте еще раз.'),
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
           return;
@@ -115,17 +128,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'currency': _currencyController.text,
       'timezone': _timezoneController.text.isEmpty ? null : _timezoneController.text,
       'logo': logoUrl,
-      'primary_color': _primaryColorController.text.isEmpty ? null : _primaryColorController.text,
-      'background_color': _backgroundColorController.text.isEmpty ? null : _backgroundColorController.text,
-      'text_color': _textColorController.text.isEmpty ? null : _textColorController.text,
       'supports_delivery': _supportsDelivery,
       'supports_pickup': _supportsPickup,
       'payment_methods': _paymentMethods,
       'yookassa_shop_id': _yookassaShopIdController.text.isEmpty ? null : _yookassaShopIdController.text,
       'yookassa_secret_key': _yookassaSecretKeyController.text.isEmpty ? null : _yookassaSecretKeyController.text,
+      'loyalty_points_percent': double.tryParse(_loyaltyPointsPercentController.text) ?? 1.0,
     };
     
+    // Всегда добавляем цвета темы
+    // Если тема была изменена, отправляем все цвета (даже null, чтобы очистить их на бэкенде)
+    if (_currentTheme != null) {
+      final themeJson = _currentTheme!.toJson();
+      // НЕ удаляем null значения - они нужны для очистки цветов на бэкенде
+      // Добавляем все цвета, включая null - это позволит очистить цвета на бэкенде
+      data.addAll(themeJson);
+    } else {
+      // Если тема null, отправляем пустую тему, чтобы очистить все цвета
+      final emptyThemeJson = BusinessTheme.empty().toJson();
+      data.addAll(emptyThemeJson);
+    }
+    
     bloc.add(UpdateSettings(widget.businessSlug, data));
+    _hasChanges = false; // Сбрасываем флаг после сохранения
+  }
+  
+  Future<void> _openThemeColorsScreen() async {
+    final result = await Navigator.of(context).push<BusinessTheme>(
+      MaterialPageRoute(
+        builder: (context) => ThemeColorsScreen(
+          initialTheme: _currentTheme,
+        ),
+      ),
+    );
+    
+    if (result != null) {
+      setState(() {
+        _currentTheme = result;
+        _markAsChanged();
+      });
+    }
   }
   
   Future<void> _pickLogo() async {
@@ -172,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${htmlFile.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -180,11 +222,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
+      // Логируем ошибку, но не показываем пользователю технические детали
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось выбрать файл. Попробуйте еще раз.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -206,11 +249,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _selectedLogoFile = file;
             _logoController.clear();
           });
+          _markAsChanged();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Файл выбран: ${file.name}'),
-                backgroundColor: Colors.green,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -218,11 +262,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
+      // Логируем ошибку, но не показываем пользователю технические детали
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора файла: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Не удалось выбрать файл. Попробуйте еще раз.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -242,16 +287,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           } else if (state is SettingsUpdated) {
             _populateControllers(state.settings);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Настройки сохранены'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Настройки сохранены'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
               ),
             );
           } else if (state is SettingsError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
+                content: const Text('Ошибка при работе с настройками. Попробуйте еще раз.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -259,7 +304,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: BlocBuilder<SettingsBloc, SettingsState>(
           builder: (context, state) {
             final isLoading = state is SettingsLoading || state is SettingsSaving || state is LogoUploading;
-            final canSave = !isLoading && state is SettingsLoaded;
+            // Кнопка сохранения активна если:
+            // 1. Не идет загрузка/сохранение
+            // 2. Настройки загружены (SettingsLoaded или SettingsUpdated)
+            // 3. Есть изменения (_hasChanges) или выбран файл для загрузки
+            final canSave = !isLoading && 
+                (state is SettingsLoaded || state is SettingsUpdated) &&
+                (_hasChanges || _selectedLogoFile != null);
             
             return Scaffold(
               appBar: AppBar(
@@ -286,6 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               labelText: 'Название бизнеса *',
                               border: OutlineInputBorder(),
                             ),
+                            onChanged: (_) => _markAsChanged(),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Введите название';
@@ -301,6 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               border: OutlineInputBorder(),
                             ),
                             maxLines: 3,
+                            onChanged: (_) => _markAsChanged(),
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
@@ -310,6 +363,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               border: OutlineInputBorder(),
                               helperText: 'Например: RUB, USD, EUR',
                             ),
+                            onChanged: (_) => _markAsChanged(),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Введите валюту';
@@ -325,6 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               border: OutlineInputBorder(),
                               helperText: 'Например: Europe/Moscow',
                             ),
+                            onChanged: (_) => _markAsChanged(),
                           ),
                           const SizedBox(height: 24),
                           
@@ -340,6 +395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     hintText: 'Или загрузите файл',
                                   ),
                                   onChanged: (value) {
+                                    _markAsChanged();
                                     if (value.isNotEmpty && _selectedLogoFile != null) {
                                       setState(() {
                                         _selectedLogoFile = null;
@@ -382,30 +438,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _primaryColorController,
-                            decoration: const InputDecoration(
-                              labelText: 'Основной цвет',
-                              border: OutlineInputBorder(),
-                              helperText: 'Hex код цвета (например: #FF5722)',
-                            ),
+                          Card(
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.palette,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: const Text('Цвета темы'),
+                              subtitle: Text(
+                                _currentTheme?.hasCustomColors == true
+                                    ? 'Настроены кастомные цвета'
+                                    : 'Используются цвета по умолчанию',
                           ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _backgroundColorController,
-                            decoration: const InputDecoration(
-                              labelText: 'Цвет фона',
-                              border: OutlineInputBorder(),
-                              helperText: 'Hex код цвета',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _textColorController,
-                            decoration: const InputDecoration(
-                              labelText: 'Цвет текста',
-                              border: OutlineInputBorder(),
-                              helperText: 'Hex код цвета',
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: _openThemeColorsScreen,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -419,6 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               setState(() {
                                 _supportsDelivery = value;
                               });
+                              _markAsChanged();
                             },
                           ),
                           SwitchListTile(
@@ -429,6 +477,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               setState(() {
                                 _supportsPickup = value;
                               });
+                              _markAsChanged();
                             },
                           ),
                           const SizedBox(height: 24),
@@ -447,6 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   _paymentMethods.remove('cash');
                                 }
                               });
+                              _markAsChanged();
                             },
                           ),
                           CheckboxListTile(
@@ -462,6 +512,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   _paymentMethods.remove('online');
                                 }
                               });
+                              _markAsChanged();
                             },
                           ),
                           const SizedBox(height: 24),
@@ -475,6 +526,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 border: OutlineInputBorder(),
                                 helperText: 'ID магазина в YooKassa',
                               ),
+                              onChanged: (_) => _markAsChanged(),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -485,9 +537,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 helperText: 'Секретный ключ YooKassa',
                               ),
                               obscureText: true,
+                              onChanged: (_) => _markAsChanged(),
                             ),
                             const SizedBox(height: 24),
                           ],
+                          
+                          _buildSectionTitle('Программа лояльности'),
+                          TextFormField(
+                            controller: _loyaltyPointsPercentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Процент начисления баллов (%)',
+                              border: OutlineInputBorder(),
+                              helperText: 'Процент от суммы заказа, который начисляется в виде баллов (по умолчанию: 1%)',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => _markAsChanged(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Введите процент';
+                              }
+                              final percent = double.tryParse(value);
+                              if (percent == null) {
+                                return 'Введите корректное число';
+                              }
+                              if (percent < 0 || percent > 100) {
+                                return 'Процент должен быть от 0 до 100';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
                           
                           FilledButton(
                             onPressed: canSave ? () => _saveSettings(context.read<SettingsBloc>()) : null,
@@ -495,11 +574,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 20,
                                     height: 20,
                                     child: CircularProgressIndicator(
-                                      color: Colors.white,
+                                      color: Theme.of(context).colorScheme.onPrimary,
                                       strokeWidth: 2,
                                     ),
                                   )
