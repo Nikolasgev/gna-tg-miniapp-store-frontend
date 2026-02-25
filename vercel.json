@@ -3,5 +3,8 @@
   "buildCommand": "bash build_vercel.sh",
   "installCommand": "echo 'Dependencies in build script'",
   "outputDirectory": "build/web",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
