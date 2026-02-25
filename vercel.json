@@ -1,6 +1,7 @@
 {
-  "outputDirectory": "build/web",
   "framework": null,
+  "buildCommand": "bash build_vercel.sh",
+  "installCommand": "echo 'Dependencies in build script'",
+  "outputDirectory": "build/web",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD ./"
 }
-
