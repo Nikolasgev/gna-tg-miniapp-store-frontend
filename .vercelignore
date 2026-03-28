@@ -1,0 +1,14 @@
+.dart_tool/
+.buildlog/
+.pub-cache/
+.pub/
+build/
+**/doc/api/
+ios/
+android/
+linux/
+macos/
+windows/
+.idea/
+*.iml
+.fvm/
