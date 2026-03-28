@@ -1,10 +1,5 @@
 {
-  "framework": null,
-  "buildCommand": "bash build_vercel.sh",
-  "installCommand": "echo 'Dependencies in build script'",
-  "outputDirectory": "build/web",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "flutter pub get && flutter build web --release --target lib/mini_app/main.dart --dart-define=API_BASE_URL=$API_BASE_URL --dart-define=ENVIRONMENT=production",
+  "outputDirectory": "build/web"
 }
