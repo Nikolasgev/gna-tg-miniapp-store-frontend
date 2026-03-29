@@ -19,7 +19,6 @@ dependencies:
 
   # HTTP Client
   dio: ^5.4.0
-  retrofit: ^4.0.3
   json_annotation: ^4.8.1
 
   # Local Storage
@@ -69,7 +68,6 @@ dev_dependencies:
   json_serializable: ^6.7.1
   freezed: ^2.4.6
   injectable_generator: ^2.4.1
-  retrofit_generator: ^8.0.6
 
   # Testing
   bloc_test: ^9.1.5
